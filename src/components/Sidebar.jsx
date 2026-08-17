@@ -18,19 +18,27 @@ import {
   HelpCircle,
   FileText,
   ChevronDown,
+  Settings,
+  Scale,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
-
 import SignetLogo from "./SignetLogo";
 
-const menu = [
+const SIDEBAR_STORAGE_KEY = "sidebar";
+const SIDEBAR_VERSION_KEY = "sidebar-version";
+const SIDEBAR_VERSION = "3";
+
+const primaryNav = [
   { name: "Dashboard", to: "/admin", icon: LayoutDashboard, end: true },
   { name: "Companies", to: "/admin/companies", icon: Building2 },
   { name: "Candidates", to: "/admin/candidates", icon: Users },
   { name: "Jobs", to: "/admin/jobs", icon: Briefcase },
   { name: "Applications", to: "/admin/applications", icon: ClipboardList },
+];
+
+const contentNav = [
   {
     name: "Articles",
     icon: BookOpen,
@@ -40,25 +48,37 @@ const menu = [
     ],
   },
   { name: "Notifications", to: "/admin/notifications", icon: Bell },
-  { type: "label", name: "Settings" },
+];
+
+const settingsItems = [
   { name: "Profile Settings", to: "/admin/settings/profile", icon: UserCircle },
   { name: "Change Password", to: "/admin/settings/password", icon: LockKeyhole },
   { name: "User Roles", to: "/admin/settings/roles", icon: ShieldCheck },
   { name: "Account Settings", to: "/admin/settings/account", icon: KeyRound },
-  { name: "Send Notifications", to: "/admin/notifications/send", icon: Bell },
   { name: "Theme Color", to: "/admin/settings/theme", icon: Palette },
-  { type: "label", name: "Support & Legal" },
-  {
-    name: "FAQs",
-    icon: HelpCircle,
-    children: [
-      { name: "All FAQs", to: "/admin/faqs" },
-      { name: "Add FAQ", to: "/admin/faqs/add" },
-    ],
-  },
+  { name: "Send Notification", to: "/admin/notifications/send", icon: Bell },
+];
+
+const supportItems = [
+  { name: "All FAQs", to: "/admin/faqs", icon: HelpCircle },
+  { name: "Add FAQ", to: "/admin/faqs/add", icon: HelpCircle },
   { name: "Terms & Conditions", to: "/admin/terms", icon: FileText },
   { name: "Privacy Policy", to: "/admin/privacy", icon: FileText },
 ];
+
+const settingsGroup = { name: "Settings", icon: Settings, children: settingsItems };
+const supportGroup = { name: "Support & Legal", icon: Scale, children: supportItems };
+
+function readCollapsedPreference() {
+  if (typeof window === "undefined") return false;
+  if (localStorage.getItem(SIDEBAR_VERSION_KEY) !== SIDEBAR_VERSION) {
+    localStorage.setItem(SIDEBAR_VERSION_KEY, SIDEBAR_VERSION);
+    localStorage.setItem(SIDEBAR_STORAGE_KEY, "expanded");
+    return false;
+  }
+  if (window.innerWidth < 1024) return true;
+  return localStorage.getItem(SIDEBAR_STORAGE_KEY) === "collapsed";
+}
 
 function isChildActive(pathname, children) {
   return children.some(
@@ -66,9 +86,19 @@ function isChildActive(pathname, children) {
   );
 }
 
+function linkClass(isActive, collapsed) {
+  return [
+    "signet-sidebar-link",
+    collapsed ? "signet-sidebar-link--collapsed" : "",
+    isActive ? "signet-sidebar-link--active" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
 function SidebarTooltip({ label, children }) {
   return (
-    <div className="signet-sidebar-tip-wrap group/tip relative">
+    <div className="signet-sidebar-tip-wrap">
       {children}
       <span className="signet-sidebar-tip" role="tooltip">
         {label}
@@ -81,35 +111,48 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
-  const [collapsed, setCollapsed] = useState(
-    () => localStorage.getItem("sidebar") === "collapsed"
-  );
+  const [collapsed, setCollapsed] = useState(readCollapsedPreference);
   const [openMenu, setOpenMenu] = useState(null);
   const [flyoutMenu, setFlyoutMenu] = useState(null);
 
+  const settingsActive = useMemo(
+    () => isChildActive(pathname, settingsItems),
+    [pathname]
+  );
+  const supportActive = useMemo(
+    () => isChildActive(pathname, supportItems),
+    [pathname]
+  );
+
   const activeParent = useMemo(() => {
-    for (const item of menu) {
-      if (item.children && isChildActive(pathname, item.children)) {
-        return item.name;
-      }
+    for (const item of contentNav) {
+      if (item.children && isChildActive(pathname, item.children)) return item.name;
     }
+    if (settingsActive) return settingsGroup.name;
+    if (supportActive) return supportGroup.name;
     return null;
-  }, [pathname]);
+  }, [pathname, settingsActive, supportActive]);
 
   useEffect(() => {
-    localStorage.setItem("sidebar", collapsed ? "collapsed" : "expanded");
+    localStorage.setItem(SIDEBAR_STORAGE_KEY, collapsed ? "collapsed" : "expanded");
     document.documentElement.dataset.sidebar = collapsed ? "collapsed" : "expanded";
   }, [collapsed]);
 
   useEffect(() => {
-    if (!collapsed && activeParent) {
-      setOpenMenu(activeParent);
-    }
+    if (!collapsed && activeParent) setOpenMenu(activeParent);
     if (collapsed) {
       setOpenMenu(null);
       setFlyoutMenu(null);
     }
   }, [collapsed, activeParent]);
+
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth < 1024) setCollapsed(true);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -129,32 +172,50 @@ export default function Sidebar() {
     setOpenMenu((prev) => (prev === name ? null : name));
   };
 
+  const wrapCollapsed = (label, node, key) =>
+    collapsed ? (
+      <SidebarTooltip key={key} label={label}>
+        {node}
+      </SidebarTooltip>
+    ) : (
+      <div key={key}>{node}</div>
+    );
+
   const renderNavLink = (item) => {
     const link = (
       <NavLink
         to={item.to}
         end={item.end}
-        className={({ isActive }) =>
-          [
-            "navlink signet-sidebar-link",
-            collapsed ? "signet-sidebar-link--collapsed" : "",
-            isActive ? "navlink--active" : "",
-          ].join(" ")
-        }
+        className={({ isActive }) => linkClass(isActive, collapsed)}
       >
-        <item.icon size={18} className="signet-sidebar-icon shrink-0" />
+        <span className="signet-sidebar-icon-wrap">
+          <item.icon size={18} strokeWidth={2} />
+        </span>
         <span className="signet-sidebar-label">{item.name}</span>
       </NavLink>
     );
-
-    return collapsed ? (
-      <SidebarTooltip key={item.to} label={item.name}>
-        {link}
-      </SidebarTooltip>
-    ) : (
-      <div key={item.to}>{link}</div>
-    );
+    return wrapCollapsed(item.name, link, item.to);
   };
+
+  const renderFlyoutPanel = (title, children, isOpen) => (
+    <div className={`signet-sidebar-flyout ${isOpen ? "is-open" : ""}`}>
+      <p className="signet-sidebar-flyout-title">{title}</p>
+      <div className="signet-sidebar-flyout-links">{children}</div>
+    </div>
+  );
+
+  const renderSubmenuLinks = (children, withIcons = false) =>
+    children.map((child) => (
+      <NavLink
+        key={child.to}
+        to={child.to}
+        onClick={() => setFlyoutMenu(null)}
+        className={({ isActive }) => `signet-submenu-link ${isActive ? "active" : ""}`}
+      >
+        {withIcons && child.icon && <child.icon size={14} className="shrink-0 opacity-60" />}
+        <span>{child.name}</span>
+      </NavLink>
+    ));
 
   const renderSubmenu = (item) => {
     const isOpen = collapsed ? flyoutMenu === item.name : openMenu === item.name;
@@ -167,49 +228,33 @@ export default function Sidebar() {
         className={[
           "signet-sidebar-link w-full",
           collapsed ? "signet-sidebar-link--collapsed" : "",
-          isOpen || isParentActive ? "signet-sidebar-link--open" : "",
+          isOpen || isParentActive ? "signet-sidebar-link--active signet-sidebar-link--open" : "",
         ].join(" ")}
         aria-expanded={isOpen}
       >
-        <item.icon size={18} className="signet-sidebar-icon shrink-0" />
+        <span className="signet-sidebar-icon-wrap">
+          <item.icon size={18} strokeWidth={2} />
+        </span>
         <span className="signet-sidebar-label flex-1 text-left">{item.name}</span>
         {!collapsed && (
-          <ChevronDown
-            size={16}
-            className={`signet-sidebar-chevron shrink-0 ${isOpen ? "is-open" : ""}`}
-          />
+          <ChevronDown size={16} className={`signet-sidebar-chevron ${isOpen ? "is-open" : ""}`} />
         )}
       </button>
     );
 
-    const submenu = (
-      <div
-        className={`${
-          collapsed ? "signet-sidebar-flyout" : "signet-sidebar-submenu"
-        } ${isOpen ? "is-open" : ""}`}
-      >
-        <div className={collapsed ? "" : "signet-sidebar-submenu-inner"}>
-          {item.children.map((child) => (
-            <NavLink
-              key={child.to}
-              to={child.to}
-              onClick={() => setFlyoutMenu(null)}
-              className={({ isActive }) =>
-                `signet-submenu-link ${isActive ? "active" : ""}`
-              }
-            >
-              {child.name}
-            </NavLink>
-          ))}
-        </div>
+    const panel = collapsed ? (
+      renderFlyoutPanel(item.name, renderSubmenuLinks(item.children), isOpen)
+    ) : (
+      <div className={`signet-sidebar-submenu ${isOpen ? "is-open" : ""}`}>
+        <div className="signet-sidebar-submenu-inner">{renderSubmenuLinks(item.children)}</div>
       </div>
     );
 
     if (collapsed) {
       return (
-        <div key={item.name} className="relative">
+        <div key={item.name} className="signet-sidebar-item">
           <SidebarTooltip label={item.name}>{trigger}</SidebarTooltip>
-          {submenu}
+          {panel}
         </div>
       );
     }
@@ -217,7 +262,56 @@ export default function Sidebar() {
     return (
       <div key={item.name} className="signet-sidebar-group">
         {trigger}
-        {submenu}
+        {panel}
+      </div>
+    );
+  };
+
+  const renderGroup = (group, isActive) => {
+    const isOpen = collapsed ? flyoutMenu === group.name : openMenu === group.name;
+
+    const trigger = (
+      <button
+        type="button"
+        onClick={() => toggleSubmenu(group.name)}
+        className={[
+          "signet-sidebar-link w-full",
+          collapsed ? "signet-sidebar-link--collapsed" : "",
+          isOpen || isActive ? "signet-sidebar-link--active signet-sidebar-link--open" : "",
+        ].join(" ")}
+        aria-expanded={isOpen}
+      >
+        <span className="signet-sidebar-icon-wrap">
+          <group.icon size={18} strokeWidth={2} />
+        </span>
+        <span className="signet-sidebar-label flex-1 text-left">{group.name}</span>
+        {!collapsed && (
+          <ChevronDown size={16} className={`signet-sidebar-chevron ${isOpen ? "is-open" : ""}`} />
+        )}
+      </button>
+    );
+
+    const panel = collapsed ? (
+      renderFlyoutPanel(group.name, renderSubmenuLinks(group.children, true), isOpen)
+    ) : (
+      <div className={`signet-sidebar-submenu ${isOpen ? "is-open" : ""}`}>
+        <div className="signet-sidebar-submenu-inner">{renderSubmenuLinks(group.children, true)}</div>
+      </div>
+    );
+
+    if (collapsed) {
+      return (
+        <div key={group.name} className="signet-sidebar-item">
+          <SidebarTooltip label={group.name}>{trigger}</SidebarTooltip>
+          {panel}
+        </div>
+      );
+    }
+
+    return (
+      <div key={group.name} className="signet-sidebar-group">
+        {trigger}
+        {panel}
       </div>
     );
   };
@@ -233,10 +327,8 @@ export default function Sidebar() {
         />
       )}
 
-      <aside
-        className={`signet-sidebar sidebar ${collapsed ? "sidebar--collapsed" : "sidebar--expanded"}`}
-      >
-        <div className={`signet-sidebar-head ${collapsed ? "is-collapsed" : ""}`}>
+      <aside className={`signet-sidebar ${collapsed ? "signet-sidebar--collapsed" : "signet-sidebar--expanded"}`}>
+        <div className="signet-sidebar-head">
           <SignetLogo collapsed={collapsed} subtitle="Admin Panel" />
           <button
             type="button"
@@ -250,40 +342,58 @@ export default function Sidebar() {
         </div>
 
         <nav className="signet-sidebar-nav">
-          {menu.map((item, i) => {
-            if (item.type === "label") {
-              return (
-                <div key={`${item.name}-${i}`} className="signet-sidebar-section">
-                  <span className="signet-sidebar-section-label">{item.name}</span>
-                  <span className="signet-sidebar-section-rule" aria-hidden />
-                </div>
-              );
-            }
+          <div className="signet-sidebar-block">
+            {!collapsed && <p className="signet-sidebar-block-label">Overview</p>}
+            {primaryNav.map((item) => renderNavLink(item))}
+          </div>
 
-            if (item.children) return renderSubmenu(item);
-            return renderNavLink(item);
-          })}
+          <div className="signet-sidebar-block">
+            {!collapsed ? (
+              <p className="signet-sidebar-block-label">Content</p>
+            ) : (
+              <span className="signet-sidebar-divider" aria-hidden />
+            )}
+            {contentNav.map((item) =>
+              item.children ? renderSubmenu(item) : renderNavLink(item)
+            )}
+          </div>
+
+          <div className="signet-sidebar-block">
+            {!collapsed ? (
+              <p className="signet-sidebar-block-label">Settings</p>
+            ) : (
+              <span className="signet-sidebar-divider" aria-hidden />
+            )}
+            {renderGroup(settingsGroup, settingsActive)}
+          </div>
+
+          <div className="signet-sidebar-block">
+            {!collapsed ? (
+              <p className="signet-sidebar-block-label">Support & Legal</p>
+            ) : (
+              <span className="signet-sidebar-divider" aria-hidden />
+            )}
+            {renderGroup(supportGroup, supportActive)}
+          </div>
         </nav>
 
-        <div className={`signet-sidebar-foot ${collapsed ? "is-collapsed" : ""}`}>
+        <div className="signet-sidebar-foot">
           {collapsed ? (
             <SidebarTooltip label="Logout">
               <button
                 type="button"
                 onClick={handleLogout}
-                className="signet-sidebar-link signet-sidebar-link--collapsed signet-sidebar-logout"
+                className="signet-sidebar-link signet-sidebar-link--collapsed signet-sidebar-link--logout"
                 aria-label="Logout"
               >
-                <LogOut size={18} className="signet-sidebar-icon shrink-0" />
+                <span className="signet-sidebar-icon-wrap">
+                  <LogOut size={18} strokeWidth={2} />
+                </span>
               </button>
             </SidebarTooltip>
           ) : (
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="signet-sidebar-logout-btn"
-            >
-              <LogOut size={18} />
+            <button type="button" onClick={handleLogout} className="signet-sidebar-logout-btn">
+              <LogOut size={18} strokeWidth={2} />
               <span>Logout</span>
             </button>
           )}

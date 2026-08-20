@@ -1,16 +1,103 @@
-# React + Vite
+# Signet Admin Panel
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Admin console for **Signet Employment Hub** — companies, candidates, jobs, applications, articles, FAQs, and legal content. Connects to the same Firebase project as the Signet web/mobile apps (`job-portal-app-72db3`).
 
-Currently, two official plugins are available:
+## Local development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+npm install
+npm run dev
+```
 
-## React Compiler
+Open [http://localhost:5173/login](http://localhost:5173/login)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Requires a Firebase Auth user with a Firestore document `users/{uid}` where `userType` is `"admin"`.
 
-## Expanding the ESLint configuration
+## Production build
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+npm run build
+```
+
+Output: `dist/` (static SPA)
+
+## Deploy to VPS (Hestia — same as Signet site)
+
+The main Signet site uses `/Users/shubhamsingh/jobi/scripts/vps-deploy.sh` with PM2 + Nginx.  
+The admin panel is a **static SPA**, so Nginx serves `dist/` directly (no PM2).
+
+### 1. On Hestia — create subdomain
+
+In Hestia Control Panel:
+
+1. **Web → Add Domain** (or subdomain): `admin.signemploymenthub.com`
+2. Enable **SSL** (Let's Encrypt)
+3. Point DNS **A record** for `admin` to your VPS IP
+
+> Use the same base domain as your live site. If your site is `signemploymenthub.com`, use `admin.signemploymenthub.com`.
+
+### 2. Firebase — authorize domain
+
+Firebase Console → **Authentication → Settings → Authorized domains**
+
+Add: `admin.signemploymenthub.com`
+
+### 3. Push code to GitHub
+
+Repo: `https://github.com/signeteduau/signet_job_admin.git`
+
+```bash
+git add .
+git commit -m "Deploy admin panel"
+git push origin main
+```
+
+### 4. Run deploy on VPS (as root)
+
+Copy the script to the server or clone the repo, then:
+
+```bash
+cd /path/to/signet-admin   # or clone fresh on VPS
+bash scripts/vps-deploy.sh
+```
+
+Or with custom domain/user:
+
+```bash
+HESTIA_USER=user ADMIN_DOMAIN=admin.signemploymenthub.com bash scripts/vps-deploy.sh
+```
+
+The script will:
+
+- Install Node.js 20 (if missing)
+- Clone/pull `signet_job_admin` into `/home/user/apps/signet-admin`
+- Run `npm ci && npm run build`
+- Copy `dist/` → `/home/user/web/admin.signemploymenthub.com/public_html`
+- Configure Nginx SPA routing (`try_files` for React Router)
+- Rebuild the Hestia web domain
+
+### 5. Verify
+
+- `https://admin.signemploymenthub.com/login`
+- Sign in with an admin Firebase account
+
+### Re-deploy after changes
+
+```bash
+ssh root@YOUR_VPS
+bash /home/user/apps/signet-admin/scripts/vps-deploy.sh
+```
+
+Or pull latest on VPS manually:
+
+```bash
+cd /home/user/apps/signet-admin && git pull && npm ci && npm run build
+rsync -av --delete dist/ /home/user/web/admin.signemploymenthub.com/public_html/
+```
+
+## Stack
+
+- React 19 + Vite 7
+- Firebase Auth + Firestore
+- Tailwind CSS
+- React Router 7

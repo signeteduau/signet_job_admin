@@ -92,10 +92,9 @@ NGINX_SSL_CUSTOM="${NGINX_DIR}/nginx.ssl.conf_custom"
 NGINX_CUSTOM="${NGINX_DIR}/nginx.conf_custom"
 mkdir -p "$NGINX_DIR"
 
-# Hestia includes these files inside the server block — use try_files for React Router
-SPA_BLOCK='location / {
-    try_files $uri $uri/ /index.html;
-}'
+# Hestia already defines location / in the domain template.
+# A second location / here causes: duplicate location "/" nginx error.
+SPA_BLOCK='error_page 404 =200 /index.html;'
 
 echo "$SPA_BLOCK" > "$NGINX_SSL_CUSTOM"
 echo "$SPA_BLOCK" > "$NGINX_CUSTOM"

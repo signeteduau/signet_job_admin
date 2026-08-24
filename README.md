@@ -30,17 +30,17 @@ The admin panel is a **static SPA**, so Nginx serves `dist/` directly (no PM2).
 
 In Hestia Control Panel:
 
-1. **Web → Add Domain** (or subdomain): `admin.signemploymenthub.com`
+1. **Web → Add Domain** (or subdomain): `admin.signetemploymenthub.com`
 2. Enable **SSL** (Let's Encrypt)
 3. Point DNS **A record** for `admin` to your VPS IP
 
-> Use the same base domain as your live site. If your site is `signemploymenthub.com`, use `admin.signemploymenthub.com`.
+> Use the same base domain as your live site. If your site is `signetemploymenthub.com`, use `admin.signetemploymenthub.com`.
 
 ### 2. Firebase — authorize domain
 
 Firebase Console → **Authentication → Settings → Authorized domains**
 
-Add: `admin.signemploymenthub.com`
+Add: `admin.signetemploymenthub.com`
 
 ### 3. Push code to GitHub
 
@@ -64,7 +64,7 @@ bash scripts/vps-deploy.sh
 Or with custom domain/user:
 
 ```bash
-HESTIA_USER=user ADMIN_DOMAIN=admin.signemploymenthub.com bash scripts/vps-deploy.sh
+HESTIA_USER=user ADMIN_DOMAIN=admin.signetemploymenthub.com bash scripts/vps-deploy.sh
 ```
 
 The script will:
@@ -72,13 +72,13 @@ The script will:
 - Install Node.js 20 (if missing)
 - Clone/pull `signet_job_admin` into `/home/user/apps/signet-admin`
 - Run `npm ci && npm run build`
-- Copy `dist/` → `/home/user/web/admin.signemploymenthub.com/public_html`
+- Copy `dist/` → `/home/user/web/admin.signetemploymenthub.com/public_html`
 - Configure Nginx SPA routing (`try_files` for React Router)
 - Rebuild the Hestia web domain
 
 ### 5. Verify
 
-- `https://admin.signemploymenthub.com/login`
+- `https://admin.signetemploymenthub.com/login`
 - Sign in with an admin Firebase account
 
 ### Re-deploy after changes
@@ -92,7 +92,7 @@ Or pull latest on VPS manually:
 
 ```bash
 cd /home/user/apps/signet-admin && git pull && npm ci && npm run build
-rsync -av --delete dist/ /home/user/web/admin.signemploymenthub.com/public_html/
+rsync -av --delete dist/ /home/user/web/admin.signetemploymenthub.com/public_html/
 ```
 
 ## Stack

@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Search, Pencil, Trash2, Star } from "lucide-react";
 import { toDate } from "../lib/firestore";
+import { articleCategoryLabel } from "../lib/articles";
 
 export default function AllBlogs() {
   const [articles, setArticles] = useState([]);
@@ -32,6 +33,7 @@ export default function AllBlogs() {
       return (
         (a.title || "").toLowerCase().includes(term) ||
         (a.author || "").toLowerCase().includes(term) ||
+        (a.categoryName || "").toLowerCase().includes(term) ||
         (a.tags || []).join(" ").toLowerCase().includes(term)
       );
     });
@@ -74,6 +76,7 @@ export default function AllBlogs() {
           <thead className="bg-[rgb(var(--card))]">
             <tr>
               <th className="text-left px-4 py-3">Title</th>
+              <th className="text-left px-4 py-3">Category</th>
               <th className="text-left px-4 py-3">Author</th>
               <th className="text-left px-4 py-3">Tags</th>
               <th className="text-left px-4 py-3">Date</th>
@@ -89,6 +92,15 @@ export default function AllBlogs() {
                     {a.title}
                   </div>
                   {a.subtitle && <p className="text-xs opacity-60 mt-0.5">{a.subtitle}</p>}
+                </td>
+                <td className="px-4 py-3">
+                  {articleCategoryLabel(a) !== "—" ? (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-[rgb(var(--purple))/10%] text-[rgb(var(--purple))]">
+                      {articleCategoryLabel(a)}
+                    </span>
+                  ) : (
+                    "—"
+                  )}
                 </td>
                 <td className="px-4 py-3">{a.author || "—"}</td>
                 <td className="px-4 py-3">
@@ -113,7 +125,7 @@ export default function AllBlogs() {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td className="px-4 py-8 text-center opacity-60" colSpan={5}>No articles found.</td>
+                <td className="px-4 py-8 text-center opacity-60" colSpan={6}>No articles found.</td>
               </tr>
             )}
           </tbody>

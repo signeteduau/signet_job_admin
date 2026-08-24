@@ -1,32 +1,50 @@
 #!/usr/bin/env bash
 # Deploy Signet Admin Panel to Hestia VPS (same stack as signet_job_site).
 #
-# Prerequisites on VPS:
-#   1. Hestia user exists (default: user)
-#   2. Subdomain created in Hestia, e.g. admin.signemploymenthub.com
-#   3. DNS A record points subdomain to this VPS
-#   4. Firebase Console → Authentication → Authorized domains → add the admin subdomain
-#
 # Run on VPS as root:
-#   bash vps-deploy.sh
+#   bash /home/user/apps/signet-admin/scripts/vps-deploy.sh
 #
 # Optional overrides:
-#   HESTIA_USER=user ADMIN_DOMAIN=admin.signemploymenthub.com bash vps-deploy.sh
+#   HESTIA_USER=user ADMIN_DOMAIN=admin.signetemploymenthub.com bash vps-deploy.sh
 
 set -euo pipefail
 
-HESTIA_USER="${HESTIA_USER:-user}"
-ADMIN_DOMAIN="${ADMIN_DOMAIN:-admin.signemploymenthub.com}"
-APP_DIR="/home/${HESTIA_USER}/apps/signet-admin"
-PUBLIC_HTML="/home/${HESTIA_USER}/web/${ADMIN_DOMAIN}/public_html"
+HESTIA_BIN="${HESTIA_BIN:-/usr/local/hestia/bin}"
+ADMIN_DOMAIN="${ADMIN_DOMAIN:-admin.signetemploymenthub.com}"
+APP_DIR="${APP_DIR:-/home/user/apps/signet-admin}"
 REPO="${REPO:-https://github.com/signeteduau/signet_job_admin.git}"
 BRANCH="${BRANCH:-main}"
 
+detect_hestia_user() {
+  if [ -n "${HESTIA_USER:-}" ]; then
+    echo "$HESTIA_USER"
+    return
+  fi
+  local conf
+  for conf in /home/*/conf/web/"${ADMIN_DOMAIN}"/nginx.conf; do
+    if [ -f "$conf" ]; then
+      echo "$conf" | cut -d/ -f3
+      return
+    fi
+  done
+  echo "user"
+}
+
+HESTIA_USER="$(detect_hestia_user)"
+PUBLIC_HTML="/home/${HESTIA_USER}/web/${ADMIN_DOMAIN}/public_html"
+
 echo "==> Signet Admin Panel deploy"
 echo "    Domain:     ${ADMIN_DOMAIN}"
+echo "    Hestia user:${HESTIA_USER}"
 echo "    App dir:    ${APP_DIR}"
 echo "    Web root:   ${PUBLIC_HTML}"
 echo ""
+
+if [ ! -f "/home/${HESTIA_USER}/conf/web/${ADMIN_DOMAIN}/nginx.conf" ]; then
+  echo "ERROR: ${ADMIN_DOMAIN} is not configured in Hestia for user '${HESTIA_USER}'."
+  echo "Create it in Hestia → Web → Add Web Domain, then re-run."
+  exit 1
+fi
 
 echo "==> Installing git (if needed)..."
 if ! command -v git &>/dev/null; then
@@ -69,33 +87,60 @@ rsync -av --delete "$APP_DIR/dist/" "$PUBLIC_HTML/"
 chown -R "${HESTIA_USER}:${HESTIA_USER}" "$PUBLIC_HTML"
 
 echo "==> Configuring Nginx SPA routing for ${ADMIN_DOMAIN}..."
-NGINX_SSL_CUSTOM="/home/${HESTIA_USER}/conf/web/${ADMIN_DOMAIN}/nginx.ssl.conf_custom"
-NGINX_CUSTOM="/home/${HESTIA_USER}/conf/web/${ADMIN_DOMAIN}/nginx.conf_custom"
-mkdir -p "/home/${HESTIA_USER}/conf/web/${ADMIN_DOMAIN}"
+NGINX_DIR="/home/${HESTIA_USER}/conf/web/${ADMIN_DOMAIN}"
+NGINX_SSL_CUSTOM="${NGINX_DIR}/nginx.ssl.conf_custom"
+NGINX_CUSTOM="${NGINX_DIR}/nginx.conf_custom"
+mkdir -p "$NGINX_DIR"
 
+# Hestia includes these files inside the server block — use try_files for React Router
 SPA_BLOCK='location / {
     try_files $uri $uri/ /index.html;
-}
-
-location ~* \.(?:js|css|png|jpg|jpeg|gif|webp|svg|ico|woff2?)$ {
-    expires 30d;
-    add_header Cache-Control "public, immutable";
-    try_files $uri =404;
 }'
 
 echo "$SPA_BLOCK" > "$NGINX_SSL_CUSTOM"
 echo "$SPA_BLOCK" > "$NGINX_CUSTOM"
 chown "${HESTIA_USER}:${HESTIA_USER}" "$NGINX_SSL_CUSTOM" "$NGINX_CUSTOM"
 
-if command -v v-rebuild-web-domain &>/dev/null; then
-  v-rebuild-web-domain "$HESTIA_USER" "$ADMIN_DOMAIN"
-else
+rebuild_nginx() {
+  echo "==> Rebuilding Nginx via Hestia..."
+
+  if [ -x "${HESTIA_BIN}/v-list-web-domains" ]; then
+    echo "    Registered domains for ${HESTIA_USER}:"
+    "${HESTIA_BIN}/v-list-web-domains" "$HESTIA_USER" plain | sed 's/^/      - /' || true
+  fi
+
+  if [ -x "${HESTIA_BIN}/v-rebuild-web-domain" ]; then
+    if "${HESTIA_BIN}/v-rebuild-web-domain" "$HESTIA_USER" "$ADMIN_DOMAIN" yes; then
+      echo "    Rebuilt ${ADMIN_DOMAIN} OK"
+      return 0
+    fi
+    echo "    v-rebuild-web-domain failed — trying v-rebuild-web-domains..."
+  fi
+
+  if [ -x "${HESTIA_BIN}/v-rebuild-web-domains" ]; then
+    if "${HESTIA_BIN}/v-rebuild-web-domains" "$HESTIA_USER" yes; then
+      echo "    Rebuilt all web domains for ${HESTIA_USER} OK"
+      return 0
+    fi
+  fi
+
+  echo "    Hestia rebuild failed — reloading nginx directly..."
+  nginx -t
   systemctl reload nginx
-fi
+}
+
+set +e
+rebuild_nginx
+REBUILD_EXIT=$?
+set -e
 
 echo ""
 echo "============================================"
-echo " Deploy complete"
+if [ "$REBUILD_EXIT" -eq 0 ]; then
+  echo " Deploy complete"
+else
+  echo " Deploy finished (files published; check nginx if site 404s)"
+fi
 echo "============================================"
 echo " Admin URL:  https://${ADMIN_DOMAIN}"
 echo " Login:      https://${ADMIN_DOMAIN}/login"

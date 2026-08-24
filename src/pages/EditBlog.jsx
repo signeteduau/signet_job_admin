@@ -14,13 +14,15 @@ import {
   Tag,
   Trash2,
   PencilLine,
-  Image as ImageIcon,
   CalendarDays,
   User,
   Save,
 } from "lucide-react";
 
+import { articleCategoryPayload } from "../lib/articles";
+import { toDate } from "../lib/firestore";
 import RichEditor from "../components/RichEditor";
+import FeaturedImageField from "../components/FeaturedImageField";
 
 // slug generator (same as Add Blog)
 const makeSlug = (str) =>
@@ -83,10 +85,17 @@ export default function EditBlog() {
         const data = snap.data();
 
         setTitle(data.title || "");
+        setSlug(data.slug || makeSlug(data.title || ""));
+        setCategoryId(data.categoryId || "");
         setFeaturedImage(data.image || data.featuredImage || "");
         setTagsText(data.tags?.join(", ") || "");
         setContent(data.content || "");
         setAuthor(data.author || "");
+        setPublishedDate(
+          data.publishedDate ||
+            toDate(data.createdAt)?.toISOString().slice(0, 10) ||
+            ""
+        );
 
         // calculate word count from existing HTML
         const plain = data.content?.replace(/<[^>]+>/g, " ") || "";
@@ -127,11 +136,14 @@ export default function EditBlog() {
       setSaving(true);
 
       await updateDoc(doc(db, "articles", id), {
-        title,
+        title: title.trim(),
+        slug: finalSlug,
         image: featuredImage,
         tags,
         content,
-        author,
+        author: author.trim() || "Signet",
+        publishedDate: publishedDate || null,
+        ...articleCategoryPayload(categoryId, categories),
       });
 
       toast.success("Article updated!");
@@ -229,24 +241,11 @@ export default function EditBlog() {
 
           {/* IMAGE + DATE */}
           <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-2 flex items-center gap-2">
-                <ImageIcon size={14} /> Feature Image URL
-              </label>
-              <input
-                type="text"
-                className="input-box"
-                value={featuredImage}
-                onChange={(e) => setFeaturedImage(e.target.value)}
-              />
-
-              {featuredImage && (
-                <img
-                  src={featuredImage}
-                  className="w-full h-32 object-cover rounded-lg border mt-2"
-                />
-              )}
-            </div>
+            <FeaturedImageField
+              value={featuredImage}
+              onChange={setFeaturedImage}
+              disabled={saving}
+            />
 
             <div>
               <label className="text-sm font-medium mb-2 flex items-center gap-2">

@@ -1,7 +1,9 @@
 // src/components/RichEditor.jsx
 import { useMemo, useRef, useState } from "react";
 import ReactQuill from "react-quill-new";
+import { toast } from "react-hot-toast";
 import "react-quill-new/dist/quill.snow.css";
+import { uploadArticleImage, getStorageErrorMessage } from "../lib/storage";
 
 export default function RichEditor({
   value,
@@ -32,25 +34,27 @@ export default function RichEditor({
             input.setAttribute("accept", "image/*");
             input.click();
 
-            input.onchange = () => {
+            input.onchange = async () => {
               const file = input.files?.[0];
               if (!file) return;
 
-              const reader = new FileReader();
-              reader.onload = () => {
-                const quill = quillRef.current?.getEditor?.();
-                if (!quill) return;
+              const quill = quillRef.current?.getEditor?.();
+              if (!quill) return;
 
-                const range =
-                  quill.getSelection(true) || {
-                    index: quill.getLength(),
-                    length: 0,
-                  };
+              const range =
+                quill.getSelection(true) || {
+                  index: quill.getLength(),
+                  length: 0,
+                };
 
-                quill.insertEmbed(range.index, "image", reader.result, "user");
+              try {
+                const url = await uploadArticleImage(file, "inline");
+                quill.insertEmbed(range.index, "image", url, "user");
                 quill.setSelection(range.index + 1);
-              };
-              reader.readAsDataURL(file);
+              } catch (err) {
+                console.error("Inline image upload failed:", err);
+                toast.error(getStorageErrorMessage(err) || err.message || "Image upload failed");
+              }
             };
           },
         },

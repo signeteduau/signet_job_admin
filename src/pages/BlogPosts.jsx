@@ -16,11 +16,12 @@ import {
   Tag,
   Trash2,
   PencilLine,
-  Image as ImageIcon,
   CalendarDays,
   User,
 } from "lucide-react";
 import RichEditor from "../components/RichEditor";
+import FeaturedImageField from "../components/FeaturedImageField";
+import { articleCategoryPayload } from "../lib/articles";
 // simple slug generator
 const makeSlug = (str) =>
   str
@@ -171,17 +172,21 @@ export default function BlogPosts() {
       .filter(Boolean);
 
     const selectedCat = categories.find((c) => c.id === categoryId);
+    if (!selectedCat) return toast.error("Please select a category");
 
     try {
       setSaving(true);
       await addDoc(collection(db, "articles"), {
         title: title.trim(),
+        slug: finalSlug,
         subtitle: "",
         image: featuredImage.trim(),
         author: author.trim() || "Signet",
         tags,
         featured: false,
         content,
+        ...articleCategoryPayload(categoryId, categories),
+        publishedDate: publishedDate || null,
         createdAt: serverTimestamp(),
       });
 
@@ -300,31 +305,11 @@ export default function BlogPosts() {
 
           {/* Row: Featured Image & Published Date */}
           <div className="grid sm:grid-cols-2 gap-4">
-            {/* Featured Image URL */}
-            <div>
-              <label className="text-sm font-medium mb-2 flex items-center gap-2">
-                <ImageIcon size={14} /> Feature Image URL
-              </label>
-              <input
-                type="text"
-                className="w-full px-4 py-2 rounded-lg border border-[rgb(var(--card-border))] bg-[rgb(var(--background))] focus:ring-2 focus:ring-[rgb(var(--purple))] outline-none text-[rgb(var(--foreground))]"
-                placeholder="https://…"
-                value={featuredImage}
-                onChange={(e) => setFeaturedImage(e.target.value)}
-              />
-              {featuredImage && (
-                <div className="mt-3 rounded-lg overflow-hidden border border-[rgb(var(--card-border))] bg-[rgb(var(--background))]">
-                  <img
-                    src={featuredImage}
-                    alt="Preview"
-                    className="w-full h-32 object-cover"
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                    }}
-                  />
-                </div>
-              )}
-            </div>
+            <FeaturedImageField
+              value={featuredImage}
+              onChange={setFeaturedImage}
+              disabled={saving}
+            />
 
             {/* Published Date */}
             <div>

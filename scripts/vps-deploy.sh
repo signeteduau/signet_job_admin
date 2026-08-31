@@ -94,14 +94,16 @@ mkdir -p "$NGINX_DIR"
 
 # Hestia already defines location / in the domain template.
 # A second location / here causes: duplicate location "/" nginx error.
-SPA_BLOCK='location ~ ^/(login|admin)(/.*)?$ {
+# Hestia SSL proxy has no document root — set root explicitly for try_files.
+SPA_BLOCK="location ^~ /login {
+    root ${PUBLIC_HTML};
     try_files /index.html =404;
 }
 
-error_page 404 = @signet_spa;
-location @signet_spa {
-    try_files /index.html =404;
-}'
+location ^~ /admin {
+    root ${PUBLIC_HTML};
+    try_files \$uri \$uri/ /index.html;
+}"
 
 echo "$SPA_BLOCK" > "$NGINX_SSL_CUSTOM"
 echo "$SPA_BLOCK" > "$NGINX_CUSTOM"

@@ -1,8 +1,5 @@
 import { useEffect, useState } from "react";
-import { collectionGroup, onSnapshot, query } from "firebase/firestore";
-import { db } from "../../firebase";
 import {
-  dedupeApplicationDocs,
   enrichApplicationsWithCandidates,
   fetchUniqueApplications,
 } from "../../lib/firestore";
@@ -38,18 +35,6 @@ function toFeedRows(apps) {
   }));
 }
 
-async function loadFromDocs(docs) {
-  const apps = dedupeApplicationDocs(docs)
-    .slice(0, 8)
-    .map(({ key, data, appliedAt }) => ({
-      id: key,
-      ...data,
-      appliedAt,
-    }));
-  const enriched = await enrichApplicationsWithCandidates(apps);
-  return toFeedRows(enriched);
-}
-
 export default function ActivityFeed() {
   const [feed, setFeed] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +43,7 @@ export default function ActivityFeed() {
   useEffect(() => {
     let active = true;
 
-    async function loadFallback() {
+    async function load() {
       try {
         const apps = (await fetchUniqueApplications()).slice(0, 8);
         const enriched = await enrichApplicationsWithCandidates(apps);
@@ -66,7 +51,7 @@ export default function ActivityFeed() {
         setFeed(toFeedRows(enriched));
         setError("");
       } catch (err) {
-        console.error("ActivityFeed fallback failed:", err);
+        console.error("ActivityFeed load failed:", err);
         if (active) {
           setFeed([]);
           setError("Could not load activity.");
@@ -76,31 +61,12 @@ export default function ActivityFeed() {
       }
     }
 
-    const q = query(collectionGroup(db, "applications"));
-
-    const unsub = onSnapshot(
-      q,
-      async (snap) => {
-        try {
-          const rows = await loadFromDocs(snap.docs);
-          if (!active) return;
-          setFeed(rows);
-          setError("");
-          setLoading(false);
-        } catch (err) {
-          console.error("ActivityFeed snapshot processing failed:", err);
-          if (active) loadFallback();
-        }
-      },
-      (err) => {
-        console.error("ActivityFeed snapshot error:", err);
-        if (active) loadFallback();
-      }
-    );
+    load();
+    const interval = setInterval(load, 30000);
 
     return () => {
       active = false;
-      unsub();
+      clearInterval(interval);
     };
   }, []);
 

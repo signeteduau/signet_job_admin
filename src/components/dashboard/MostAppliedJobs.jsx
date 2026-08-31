@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { collectionGroup, getDocs } from "firebase/firestore";
-import { db } from "../../firebase";
 import { Briefcase } from "lucide-react";
 import DashboardWidget from "../ui/DashboardWidget";
 import EmptyState from "../ui/EmptyState";
 import { CHART_COLORS } from "../../lib/chartTheme";
+import { fetchUniqueApplications } from "../../lib/firestore";
 
 export default function MostAppliedJobs() {
   const [data, setData] = useState([]);
@@ -12,21 +11,27 @@ export default function MostAppliedJobs() {
 
   useEffect(() => {
     async function load() {
-      const snap = await getDocs(collectionGroup(db, "applications"));
-      const counts = {};
+      try {
+        const apps = await fetchUniqueApplications();
+        const counts = {};
 
-      snap.forEach((doc) => {
-        const title = doc.data().title;
-        if (title) counts[title] = (counts[title] || 0) + 1;
-      });
+        apps.forEach((app) => {
+          const title = app.title;
+          if (title) counts[title] = (counts[title] || 0) + 1;
+        });
 
-      setData(
-        Object.entries(counts)
-          .map(([title, count]) => ({ title, count }))
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 5)
-      );
-      setLoading(false);
+        setData(
+          Object.entries(counts)
+            .map(([title, count]) => ({ title, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5)
+        );
+      } catch (err) {
+        console.error("MostAppliedJobs load failed:", err);
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, []);

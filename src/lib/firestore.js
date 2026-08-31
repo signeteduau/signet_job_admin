@@ -1,6 +1,5 @@
 import {
   collection,
-  collectionGroup,
   doc,
   getDoc,
   getDocs,
@@ -12,6 +11,42 @@ export function toDate(value) {
   if (typeof value.toDate === "function") return value.toDate();
   if (value instanceof Date) return value;
   return null;
+}
+
+async function safeSubcollectionDocs(...pathSegments) {
+  try {
+    const snap = await getDocs(collection(db, ...pathSegments));
+    return snap.docs;
+  } catch (err) {
+    console.warn("Firestore subcollection read failed:", pathSegments.join("/"), err);
+    return [];
+  }
+}
+
+/** Read applications without collectionGroup (works without a Firestore index). */
+export async function fetchApplicationDocs() {
+  const [jobsSnap, usersSnap] = await Promise.all([
+    getDocs(collection(db, "jobs")),
+    getDocs(collection(db, "users")),
+  ]);
+
+  const jobAppLists = await Promise.all(
+    jobsSnap.docs.map((jobDoc) =>
+      safeSubcollectionDocs("jobs", jobDoc.id, "applications")
+    )
+  );
+
+  const candidateIds = usersSnap.docs
+    .filter((d) => d.data().userType === "candidate")
+    .map((d) => d.id);
+
+  const userAppLists = await Promise.all(
+    candidateIds.map((uid) =>
+      safeSubcollectionDocs("applications", uid, "userApplications")
+    )
+  );
+
+  return [...jobAppLists.flat(), ...userAppLists.flat()];
 }
 
 export async function fetchAllJobs() {
@@ -57,8 +92,8 @@ export function dedupeApplicationDocs(docs) {
 }
 
 export async function fetchUniqueApplications() {
-  const snap = await getDocs(collectionGroup(db, "applications"));
-  return dedupeApplicationDocs(snap.docs).map(({ key, data, appliedAt }) => ({
+  const docs = await fetchApplicationDocs();
+  return dedupeApplicationDocs(docs).map(({ key, data, appliedAt }) => ({
     id: key,
     ...data,
     appliedAt,

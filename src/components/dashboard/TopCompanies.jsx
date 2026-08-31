@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { db } from "../../firebase";
-import { collectionGroup, getDocs } from "firebase/firestore";
 import { Building2 } from "lucide-react";
 import DashboardWidget from "../ui/DashboardWidget";
 import EmptyState from "../ui/EmptyState";
 import { CHART_COLORS } from "../../lib/chartTheme";
+import { fetchUniqueApplications } from "../../lib/firestore";
 
 export default function TopCompanies() {
   const [data, setData] = useState([]);
@@ -12,21 +11,27 @@ export default function TopCompanies() {
 
   useEffect(() => {
     async function load() {
-      const snap = await getDocs(collectionGroup(db, "applications"));
-      const counts = {};
+      try {
+        const apps = await fetchUniqueApplications();
+        const counts = {};
 
-      snap.forEach((doc) => {
-        const company = doc.data().companyName;
-        if (company) counts[company] = (counts[company] || 0) + 1;
-      });
+        apps.forEach((app) => {
+          const company = app.companyName;
+          if (company) counts[company] = (counts[company] || 0) + 1;
+        });
 
-      setData(
-        Object.entries(counts)
-          .map(([name, count]) => ({ name, count }))
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 5)
-      );
-      setLoading(false);
+        setData(
+          Object.entries(counts)
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5)
+        );
+      } catch (err) {
+        console.error("TopCompanies load failed:", err);
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, []);

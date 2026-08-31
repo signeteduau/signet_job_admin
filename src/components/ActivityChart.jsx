@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { db } from "../firebase";
-import { collection, collectionGroup, getDocs } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import { SERIES, chartAxisStyle } from "../lib/chartTheme";
 import { ChartTooltipContent } from "../components/charts/ChartTooltipContent";
-import { toDate, dedupeApplicationDocs } from "../lib/firestore";
+import { toDate, dedupeApplicationDocs, fetchApplicationDocs } from "../lib/firestore";
 
 export default function ActivityChart() {
   const [data, setData] = useState([]);
@@ -23,8 +23,8 @@ export default function ActivityChart() {
       const today = new Date();
       const users = await getDocs(collection(db, "users"));
       const jobs = await getDocs(collection(db, "jobs"));
-      const apps = await getDocs(collectionGroup(db, "applications"));
-      const uniqueApps = dedupeApplicationDocs(apps.docs);
+      const appDocs = await fetchApplicationDocs();
+      const uniqueApps = dedupeApplicationDocs(appDocs);
 
       const toAppDate = (v) => toDate(v) || (typeof v === "string" ? new Date(v) : null);
       const arr = [];

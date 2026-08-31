@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchUniqueApplications } from "../lib/firestore";
+import { fetchUniqueApplications, enrichApplicationsWithCandidates } from "../lib/firestore";
 import DashboardWidget from "./ui/DashboardWidget";
 import EmptyState from "./ui/EmptyState";
 import StatusBadge from "./ui/StatusBadge";
@@ -9,10 +9,19 @@ export default function RecentApplications() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchUniqueApplications().then((all) => {
-      setApps(all.slice(0, 6));
-      setLoading(false);
-    });
+    async function load() {
+      try {
+        const all = await fetchUniqueApplications();
+        const enriched = await enrichApplicationsWithCandidates(all);
+        setApps(enriched.slice(0, 6));
+      } catch (err) {
+        console.error("RecentApplications load failed:", err);
+        setApps([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
   }, []);
 
   return (

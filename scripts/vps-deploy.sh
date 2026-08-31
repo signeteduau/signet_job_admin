@@ -94,7 +94,14 @@ mkdir -p "$NGINX_DIR"
 
 # Hestia already defines location / in the domain template.
 # A second location / here causes: duplicate location "/" nginx error.
-SPA_BLOCK='error_page 404 =200 /index.html;'
+SPA_BLOCK='location ~ ^/(login|admin)(/.*)?$ {
+    try_files /index.html =404;
+}
+
+error_page 404 = @signet_spa;
+location @signet_spa {
+    try_files /index.html =404;
+}'
 
 echo "$SPA_BLOCK" > "$NGINX_SSL_CUSTOM"
 echo "$SPA_BLOCK" > "$NGINX_CUSTOM"

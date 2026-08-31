@@ -4,13 +4,16 @@ import { db } from "../firebase";
 import {
   collection,
   addDoc,
-  getDocs,
-  updateDoc,
-  deleteDoc,
-  doc,
   serverTimestamp,
 } from "firebase/firestore";
 import { toast } from "react-hot-toast";
+import {
+  fetchBlogCategories,
+  createBlogCategory,
+  updateBlogCategory,
+  deleteBlogCategory,
+  firestoreErrorMessage,
+} from "../lib/blogCategories";
 import {
   Plus,
   Tag,
@@ -59,14 +62,10 @@ export default function BlogPosts() {
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const snap = await getDocs(collection(db, "blogCategories"));
-        const list = snap.docs
-          .map((d) => ({ id: d.id, ...d.data() }))
-          .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-        setCategories(list);
+        setCategories(await fetchBlogCategories());
       } catch (err) {
         console.error("Error loading blog categories:", err);
-        toast.error("Failed to load categories");
+        toast.error(firestoreErrorMessage(err, "Failed to load categories"));
       } finally {
         setLoadingCats(false);
       }
@@ -93,20 +92,15 @@ export default function BlogPosts() {
     }
 
     try {
-      const ref = await addDoc(collection(db, "blogCategories"), {
-        name,
-        createdAt: serverTimestamp(),
-      });
+      const created = await createBlogCategory(name);
       setCategories((prev) =>
-        [...prev, { id: ref.id, name }].sort((a, b) =>
-          a.name.localeCompare(b.name)
-        )
+        [...prev, created].sort((a, b) => a.name.localeCompare(b.name))
       );
       setCatName("");
       toast.success("Category added");
     } catch (err) {
       console.error("Add category error:", err);
-      toast.error("Could not add category");
+      toast.error(firestoreErrorMessage(err, "Could not add category"));
     }
   };
 
@@ -126,7 +120,7 @@ export default function BlogPosts() {
     }
 
     try {
-      await updateDoc(doc(db, "blogCategories", editingCatId), { name });
+      await updateBlogCategory(editingCatId, name);
       setCategories((prev) =>
         prev
           .map((c) => (c.id === editingCatId ? { ...c, name } : c))
@@ -135,7 +129,7 @@ export default function BlogPosts() {
       toast.success("Category updated");
     } catch (err) {
       console.error("Update category error:", err);
-      toast.error("Could not update category");
+      toast.error(firestoreErrorMessage(err, "Could not update category"));
     } finally {
       setEditingCatId(null);
       setEditingCatName("");
@@ -147,13 +141,13 @@ export default function BlogPosts() {
     if (!window.confirm("Delete this category?")) return;
 
     try {
-      await deleteDoc(doc(db, "blogCategories", id));
+      await deleteBlogCategory(id);
       setCategories((prev) => prev.filter((c) => c.id !== id));
       if (categoryId === id) setCategoryId("");
       toast.success("Category deleted");
     } catch (err) {
       console.error("Delete category error:", err);
-      toast.error("Could not delete category");
+      toast.error(firestoreErrorMessage(err, "Could not delete category"));
     }
   };
 

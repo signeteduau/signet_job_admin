@@ -5,8 +5,6 @@ import {
   doc,
   getDoc,
   updateDoc,
-  collection,
-  getDocs,
 } from "firebase/firestore";
 import { toast } from "react-hot-toast";
 import {
@@ -20,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { articleCategoryPayload } from "../lib/articles";
+import { fetchBlogCategories, firestoreErrorMessage } from "../lib/blogCategories";
 import { toDate } from "../lib/firestore";
 import RichEditor from "../components/RichEditor";
 import FeaturedImageField from "../components/FeaturedImageField";
@@ -61,13 +60,14 @@ export default function EditBlog() {
   // Load categories
   useEffect(() => {
     const load = async () => {
-      const snap = await getDocs(collection(db, "blogCategories"));
-      setCategories(
-        snap.docs
-          .map((d) => ({ id: d.id, ...d.data() }))
-          .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
-      );
-      setLoadingCats(false);
+      try {
+        setCategories(await fetchBlogCategories());
+      } catch (err) {
+        console.error("Error loading blog categories:", err);
+        toast.error(firestoreErrorMessage(err, "Failed to load categories"));
+      } finally {
+        setLoadingCats(false);
+      }
     };
     load();
   }, []);

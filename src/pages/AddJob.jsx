@@ -4,12 +4,12 @@ import { toast } from "react-hot-toast";
 import PageHeader from "../components/ui/PageHeader";
 import JobForm from "../components/jobs/JobForm";
 import {
-  JOB_LOCATIONS,
   JOB_TYPES,
   EMPTY_JOB_FORM,
-  buildJobPayload,
+  buildJobPayloads,
+  MAX_JOB_LOCATIONS,
 } from "../components/jobs/job-ui";
-import { createAdminJob } from "../lib/jobs";
+import { createAdminJobs } from "../lib/jobs";
 
 export default function AddJob() {
   const navigate = useNavigate();
@@ -21,10 +21,21 @@ export default function AddJob() {
     if (!form.title.trim()) return toast.error("Job title is required");
     if (!form.description.trim()) return toast.error("Job description is required");
 
+    let payloads;
+    try {
+      payloads = buildJobPayloads(form);
+    } catch (err) {
+      return toast.error(err.message || "Check location fields");
+    }
+
     try {
       setSaving(true);
-      await createAdminJob(buildJobPayload(form));
-      toast.success("Training role published");
+      await createAdminJobs(payloads);
+      toast.success(
+        payloads.length === 1
+          ? "Training role published"
+          : `${payloads.length} training roles published`
+      );
       navigate("/admin/jobs");
     } catch (err) {
       console.error(err);
@@ -55,7 +66,10 @@ export default function AddJob() {
         onCancel={() => navigate("/admin/jobs")}
         submitLabel="Publish role"
         savingLabel="Publishing…"
-        locations={JOB_LOCATIONS}
+        publishCount={Math.min(
+          form.jobLocations?.filter((l) => (l.city || "").trim()).length || 1,
+          MAX_JOB_LOCATIONS
+        )}
         jobTypes={JOB_TYPES}
       />
     </div>

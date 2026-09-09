@@ -1,8 +1,11 @@
-export const JOB_LOCATIONS = [
-  { label: "Adelaide, SA", city: "Adelaide", state: "SA" },
-  { label: "Sydney, NSW", city: "Sydney", state: "NSW" },
-  { label: "Melbourne, VIC", city: "Melbourne", state: "VIC" },
-];
+import {
+  emptyJobLocation,
+  formatJobLocation,
+  validateJobLocations,
+  MAX_JOB_LOCATIONS,
+} from "./location-data";
+
+export { LOCATION_PRESETS, MAX_JOB_LOCATIONS, validateJobLocations } from "./location-data";
 
 export const JOB_TYPES = [
   "Traineeship",
@@ -25,9 +28,11 @@ export function cityLabel(location) {
   return location.split(",")[0]?.trim() || location;
 }
 
-export function buildJobPayload(form) {
-  const loc =
-    JOB_LOCATIONS.find((l) => l.label === form.locationKey) || JOB_LOCATIONS[0];
+export function buildJobPayload(form, locationEntry) {
+  const loc = locationEntry || form.jobLocations?.[0] || emptyJobLocation();
+  const city = (loc.city || "").trim();
+  const state = (loc.state || "").trim();
+  const country = (loc.country || "").trim() || "Australia";
 
   return {
     title: form.title.trim(),
@@ -35,10 +40,10 @@ export function buildJobPayload(form) {
     anzsco: form.anzsco.trim(),
     industry: form.industry.trim(),
     trainingArea: form.trainingArea.trim(),
-    location: `${loc.city}, ${loc.state}, Australia`,
-    city: loc.city,
-    state: loc.state,
-    country: "Australia",
+    location: formatJobLocation({ city, state, country }),
+    city,
+    state,
+    country,
     type: form.type,
     salary: form.salary.trim(),
     experience: form.experience.trim(),
@@ -53,13 +58,22 @@ export function buildJobPayload(form) {
   };
 }
 
+/** One Firestore job per location row (same content, different city). */
+export function buildJobPayloads(form) {
+  const validation = validateJobLocations(form.jobLocations);
+  if (!validation.ok) {
+    throw new Error(validation.error);
+  }
+  return validation.locations.map((loc) => buildJobPayload(form, loc));
+}
+
 export const EMPTY_JOB_FORM = {
   title: "",
   occupation: "",
   anzsco: "",
   industry: "",
   trainingArea: "",
-  locationKey: "Adelaide, SA",
+  jobLocations: [emptyJobLocation()],
   type: "Traineeship",
   salary: "Training placement",
   experience: "Entry level",

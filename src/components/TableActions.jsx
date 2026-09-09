@@ -32,14 +32,12 @@ export default function TableActions({ onView, onEdit, onDelete }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-36 signet-panel py-1 z-50 animate-fade shadow-xl">
+        <div className="absolute right-0 mt-2 w-36 signet-dropdown-menu py-1 z-50 animate-fade">
           {items.map(({ label, icon: Icon, action, danger }) => (
             <button
               key={label}
               onClick={() => { setOpen(false); action(); }}
-              className={`flex items-center gap-2 px-3 py-2.5 w-full text-left text-sm hover:bg-[rgb(var(--foreground))/8%] ${
-                danger ? "text-red-500" : ""
-              }`}
+              className={`signet-dropdown-item ${danger ? "signet-dropdown-item-danger" : ""}`}
             >
               <Icon size={15} /> {label}
             </button>

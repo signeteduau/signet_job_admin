@@ -73,6 +73,14 @@ export async function createAdminJob(input) {
   return ref.id;
 }
 
+export async function createAdminJobs(inputs) {
+  const ids = [];
+  for (const input of inputs) {
+    ids.push(await createAdminJob(input));
+  }
+  return ids;
+}
+
 export async function updateAdminJob(jobId, input) {
   const payload = {
     ...normalizeAdminJobInput(input),

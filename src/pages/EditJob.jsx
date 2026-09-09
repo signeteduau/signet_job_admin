@@ -4,11 +4,11 @@ import { toast } from "react-hot-toast";
 import PageHeader from "../components/ui/PageHeader";
 import JobForm from "../components/jobs/JobForm";
 import {
-  JOB_LOCATIONS,
   JOB_TYPES,
   EMPTY_JOB_FORM,
   buildJobPayload,
 } from "../components/jobs/job-ui";
+import { jobLocationFromRecord } from "../components/jobs/location-data";
 import { fetchAdminJob, updateAdminJob, isAdminJob } from "../lib/jobs";
 
 export default function EditJob() {
@@ -33,15 +33,13 @@ export default function EditJob() {
           return;
         }
 
-        const match = JOB_LOCATIONS.find((l) => l.city === job.city);
-
         setForm({
           title: job.title || "",
           occupation: job.occupation || "",
           anzsco: job.anzsco || "",
           industry: job.industry || "",
           trainingArea: job.trainingArea || "",
-          locationKey: match?.label || JOB_LOCATIONS[0].label,
+          jobLocations: [jobLocationFromRecord(job)],
           type: job.type || "Traineeship",
           salary: job.salary || "Training placement",
           experience: job.experience || "Entry level",
@@ -113,7 +111,6 @@ export default function EditJob() {
         submitLabel="Save changes"
         savingLabel="Saving…"
         isEdit
-        locations={JOB_LOCATIONS}
         jobTypes={JOB_TYPES}
       />
     </div>

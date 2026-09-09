@@ -1,5 +1,7 @@
 import { GraduationCap, MapPin, FileText, Sparkles } from "lucide-react";
 import RichEditor from "../RichEditor";
+import LocationFields from "./LocationFields";
+import { emptyJobLocation } from "./location-data";
 
 function Field({ label, hint, required, children, className = "" }) {
   return (
@@ -40,11 +42,15 @@ export default function JobForm({
   submitLabel = "Publish job",
   savingLabel = "Publishing…",
   isEdit = false,
-  locations,
   jobTypes,
+  publishCount = 1,
 }) {
   const set = (key) => (e) =>
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
+
+  const jobLocations = form.jobLocations?.length
+    ? form.jobLocations
+    : [emptyJobLocation()];
 
   return (
     <form onSubmit={onSubmit} className="signet-job-form">
@@ -100,16 +106,22 @@ export default function JobForm({
         <Section
           icon={MapPin}
           title="Location & listing"
-          description="Where the role appears and how it is categorized"
+          description={
+            isEdit
+              ? "Where this listing appears"
+              : "Set country, state, and city — or use quick add. Each row creates one listing."
+          }
         >
           <div className="signet-job-form-grid">
-            <Field label="Location" required>
-              <select className="signet-select" value={form.locationKey} onChange={set("locationKey")}>
-                {locations.map((l) => (
-                  <option key={l.label} value={l.label}>{l.label}</option>
-                ))}
-              </select>
-            </Field>
+            <div className="sm:col-span-2">
+              <LocationFields
+                jobLocations={jobLocations}
+                onChange={(next) =>
+                  setForm((prev) => ({ ...prev, jobLocations: next }))
+                }
+                allowMultiple={!isEdit}
+              />
+            </div>
             <Field label="Job type">
               <select className="signet-select" value={form.type} onChange={set("type")}>
                 {jobTypes.map((t) => (
@@ -166,7 +178,11 @@ export default function JobForm({
           Cancel
         </button>
         <button type="submit" disabled={saving} className="signet-btn">
-          {saving ? savingLabel : submitLabel}
+          {saving
+            ? savingLabel
+            : publishCount > 1
+            ? `${submitLabel} (${publishCount})`
+            : submitLabel}
         </button>
       </div>
     </form>

@@ -39,6 +39,7 @@ export default function Topbar() {
     "/admin/companies": "Companies",
     "/admin/candidates": "Candidates",
     "/admin/jobs": "Jobs",
+    "/admin/jobs/new": "Post training role",
     "/admin/applications": "Applications",
     "/admin/all-blogs": "Articles",
     "/admin/add-blog": "Add Article",

@@ -1718,3 +1718,172 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   padding: 4px 8px; border-radius: 999px;
   background: rgb(var(--background) / 0.65);
 }
+
+/* ── Jobs flow ── */
+.signet-job-flow { animation: fadeIn 0.25s ease; }
+
+.signet-job-stat-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: grid; place-items: center; flex-shrink: 0;
+}
+
+.signet-job-applicant-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 28px; height: 28px; padding: 0 8px;
+  border-radius: 999px; font-size: 12px; font-weight: 700;
+  background: rgb(var(--foreground) / 0.06);
+  color: rgb(var(--foreground) / 0.75);
+}
+
+.signet-job-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.signet-job-form-banner {
+  display: flex; gap: 14px; align-items: flex-start;
+  padding: 16px 18px; border-radius: 16px;
+  border: 1px solid rgba(0, 76, 240, 0.18);
+  background: linear-gradient(135deg, rgba(0, 76, 240, 0.08), rgba(124, 58, 237, 0.06));
+  color: rgb(var(--foreground) / 0.78); font-size: 14px;
+}
+.signet-job-form-banner svg { color: #004CF0; flex-shrink: 0; margin-top: 2px; }
+.signet-job-form-banner strong { display: block; color: rgb(var(--foreground)); margin-bottom: 4px; }
+.signet-job-form-banner p { margin: 0; line-height: 1.5; }
+
+.signet-job-form-panel { padding: 0; overflow: hidden; margin-top: 0; }
+
+.signet-job-form-section:first-child .signet-job-form-section-head {
+  padding-top: 24px;
+}
+
+.signet-job-form-section + .signet-job-form-section {
+  border-top: 1px solid rgb(var(--card-border));
+}
+.signet-job-form-section-head {
+  display: flex; gap: 14px; align-items: flex-start;
+  padding: 22px 24px 0;
+}
+.signet-job-form-section-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: grid; place-items: center; flex-shrink: 0;
+  background: rgba(0, 76, 240, 0.1); color: #004CF0;
+}
+.signet-job-form-section-head h2 {
+  font-size: 1rem; font-weight: 800; letter-spacing: -0.02em;
+  color: rgb(var(--foreground));
+}
+.signet-job-form-section-head p {
+  font-size: 13px; color: rgb(var(--foreground) / 0.55); margin-top: 4px;
+}
+.signet-job-form-section-body { padding: 18px 24px 24px; }
+.signet-job-form-grid {
+  display: grid; gap: 16px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px) {
+  .signet-job-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.signet-job-form-actions {
+  display: flex; justify-content: flex-end; gap: 10px;
+  position: sticky; bottom: 16px; z-index: 5;
+  padding: 14px 16px; border-radius: 16px;
+  background: rgba(var(--card), 0.92);
+  border: 1px solid rgb(var(--card-border));
+  box-shadow: 0 12px 32px rgba(11, 18, 32, 0.08);
+  backdrop-filter: blur(10px);
+}
+
+.signet-job-detail-hero { padding: 28px; }
+.signet-job-detail-logo {
+  width: 72px; height: 72px; border-radius: 18px; overflow: hidden;
+  border: 1px solid rgb(var(--card-border));
+  background: rgb(var(--background) / 0.8);
+  display: grid; place-items: center; flex-shrink: 0;
+}
+.signet-job-detail-logo img { width: 100%; height: 100%; object-fit: cover; }
+.signet-job-detail-logo-fallback {
+  display: grid; place-items: center; width: 100%; height: 100%;
+  color: #004CF0; background: rgba(0, 76, 240, 0.08);
+}
+.signet-job-detail-title {
+  font-size: 1.75rem; font-weight: 850; letter-spacing: -0.03em;
+  color: rgb(var(--foreground)); line-height: 1.2;
+}
+.signet-job-detail-subtitle {
+  font-size: 14px; color: rgb(var(--foreground) / 0.62);
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px;
+}
+
+.signet-job-meta-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (min-width: 768px) {
+  .signet-job-meta-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.signet-job-meta-tile {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 14px; border-radius: 14px;
+  border: 1px solid rgb(var(--card-border));
+  background: rgb(var(--background) / 0.45);
+}
+.signet-job-meta-tile-icon {
+  width: 34px; height: 34px; border-radius: 10px;
+  display: grid; place-items: center; flex-shrink: 0;
+  background: rgba(0, 76, 240, 0.1); color: #004CF0;
+}
+.signet-job-meta-tile p {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; color: rgb(var(--foreground) / 0.45);
+}
+.signet-job-meta-tile strong {
+  display: block; margin-top: 4px; font-size: 14px;
+  color: rgb(var(--foreground) / 0.88); font-weight: 700;
+}
+
+.signet-job-detail-section { padding: 24px 28px; }
+.signet-job-detail-section h2 {
+  font-size: 1.05rem; font-weight: 800; letter-spacing: -0.02em;
+  margin-bottom: 16px; color: rgb(var(--foreground));
+}
+
+.signet-job-content {
+  font-size: 14px; line-height: 1.65; color: rgb(var(--foreground) / 0.78);
+}
+.signet-job-content p { margin-bottom: 12px; }
+.signet-job-content-heading {
+  font-weight: 700; color: rgb(var(--foreground) / 0.9); margin-bottom: 8px;
+}
+.signet-job-content-list {
+  margin: 0 0 16px 0; padding-left: 1.25rem;
+  display: grid; gap: 6px;
+}
+.signet-job-content-list li { list-style: disc; }
+.signet-job-content-block + .signet-job-content-block { margin-top: 16px; }
+
+.signet-job-skill-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.signet-job-skill-chips span {
+  padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 650;
+  background: rgba(0, 76, 240, 0.1); color: #004CF0;
+  border: 1px solid rgba(0, 76, 240, 0.15);
+}
+
+.signet-job-applicants-empty {
+  padding: 28px; border-radius: 14px; text-align: center;
+  font-size: 14px; color: rgb(var(--foreground) / 0.55);
+  border: 1px dashed rgb(var(--card-border));
+  background: rgb(var(--background) / 0.35);
+}
+.signet-job-applicants-list { display: grid; gap: 8px; }
+.signet-job-applicant-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 14px; border-radius: 14px;
+  border: 1px solid rgb(var(--card-border));
+  background: rgb(var(--background) / 0.35);
+  transition: background 0.15s ease;
+}
+.signet-job-applicant-row:hover { background: rgba(0, 76, 240, 0.04); }
+

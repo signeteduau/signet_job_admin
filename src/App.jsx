@@ -7,6 +7,8 @@ import CompanyDetail from "./pages/CompanyDetail";
 import Candidates from "./pages/Candidates";
 import CandidateDetail from "./pages/CandidateDetail";
 import Jobs from "./pages/Jobs";
+import AddJob from "./pages/AddJob";
+import EditJob from "./pages/EditJob";
 import JobDetail from "./pages/JobDetail";
 import Applications from "./pages/Applications";
 import BlogPosts from "./pages/BlogPosts";
@@ -45,6 +47,8 @@ export default function App() {
         <Route path="candidates" element={<Candidates />} />
         <Route path="candidates/:id" element={<CandidateDetail />} />
         <Route path="jobs" element={<Jobs />} />
+        <Route path="jobs/new" element={<AddJob />} />
+        <Route path="jobs/:id/edit" element={<EditJob />} />
         <Route path="jobs/:id" element={<JobDetail />} />
         <Route path="applications" element={<Applications />} />
         <Route path="/admin/add-blog" element={<BlogPosts />} />

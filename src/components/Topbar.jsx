@@ -49,6 +49,7 @@ export default function Topbar() {
     "/admin/settings/account": "Account Security",
     "/admin/settings/roles": "User Roles",
     "/admin/settings/theme": "Theme Color",
+    "/admin/settings/force-update": "Mobile Force Update",
     "/admin/notifications/send": "Send Notification",
     "/admin/notifications": "Notifications",
     "/admin/terms": "Terms & Conditions",

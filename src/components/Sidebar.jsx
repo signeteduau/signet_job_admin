@@ -13,6 +13,7 @@ import {
   PanelLeftOpen,
   LockKeyhole,
   Bell,
+  Smartphone,
   LogOut,
   BookOpen,
   HelpCircle,
@@ -56,6 +57,7 @@ const settingsItems = [
   { name: "User Roles", to: "/admin/settings/roles", icon: ShieldCheck },
   { name: "Account Settings", to: "/admin/settings/account", icon: KeyRound },
   { name: "Theme Color", to: "/admin/settings/theme", icon: Palette },
+  { name: "Mobile Force Update", to: "/admin/settings/force-update", icon: Smartphone },
   { name: "Send Notification", to: "/admin/notifications/send", icon: Bell },
 ];
 

@@ -19,6 +19,7 @@ import AccountSettings from "./pages/settings/AccountSettings";
 import UserRoles from "./pages/settings/UserRoles";
 import ChangePassword from "./pages/settings/ChangePassword";
 import ThemeSettings from "./pages/settings/ThemeSettings";
+import ForceUpdateSettings from "./pages/settings/ForceUpdateSettings";
 import NotificationsPage from "./pages/settings/Notifications";
 import SendNotification from "./pages/admin/SendNotification";
 import FaqList from "./pages/support-legal/FaqList";
@@ -70,6 +71,7 @@ export default function App() {
         <Route path="settings/roles" element={<UserRoles />} />
         <Route path="settings/password" element={<ChangePassword />} />
         <Route path="settings/theme" element={<ThemeSettings />} />
+        <Route path="settings/force-update" element={<ForceUpdateSettings />} />
         <Route path="notifications" element={<NotificationsPage />} />
       </Route>
 

@@ -65,6 +65,10 @@ export default function Topbar() {
       ? "Company details"
       : pathname.startsWith("/admin/jobs/")
       ? "Job details"
+      : pathname.startsWith("/admin/all-blogs/edit/")
+      ? "Edit article"
+      : pathname.startsWith("/admin/all-blogs/")
+      ? "Article details"
       : "Signet Admin");
 
   const [showNotif, setShowNotif] = useState(false);

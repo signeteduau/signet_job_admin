@@ -13,6 +13,7 @@ import JobDetail from "./pages/JobDetail";
 import Applications from "./pages/Applications";
 import BlogPosts from "./pages/BlogPosts";
 import AllBlogs from "./pages/AllBlogs";
+import ArticleDetail from "./pages/ArticleDetail";
 import EditBlog from "./pages/EditBlog";
 import ProfileSettings from "./pages/settings/ProfileSettings";
 import AccountSettings from "./pages/settings/AccountSettings";
@@ -55,6 +56,7 @@ export default function App() {
         <Route path="/admin/add-blog" element={<BlogPosts />} />
         <Route path="/admin/all-blogs" element={<AllBlogs />} />
         <Route path="/admin/all-blogs/edit/:id" element={<EditBlog />} />
+        <Route path="/admin/all-blogs/:id" element={<ArticleDetail />} />
         <Route path="/admin/faqs" element={<FaqList />} />
         <Route path="/admin/faqs/add" element={<AddFaq />} />
         <Route path="/admin/faqs/:id/edit" element={<EditFaq />} />

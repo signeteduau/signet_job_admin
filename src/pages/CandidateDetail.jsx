@@ -373,6 +373,15 @@ export default function CandidateDetail() {
         </div>
       </section>
 
+      <section className="signet-cd-card">
+        <h2>About me</h2>
+        {about ? (
+          <p className="signet-cd-about">{about}</p>
+        ) : (
+          <p className="signet-cd-empty">No bio added yet.</p>
+        )}
+      </section>
+
       {(insightsStatus === "loading" ||
         insightsStatus === "failed" ||
         insightsStatus === "empty" ||
@@ -466,15 +475,6 @@ export default function CandidateDetail() {
 
       <div className="signet-cd-layout">
         <div className="signet-cd-main">
-          <section className="signet-cd-card">
-            <h2>About me</h2>
-            {about ? (
-              <p className="signet-cd-about">{about}</p>
-            ) : (
-              <p className="signet-cd-empty">No bio added yet.</p>
-            )}
-          </section>
-
           <section className="signet-cd-card">
             <h2>
               <Award size={16} /> Skills

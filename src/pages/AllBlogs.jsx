@@ -7,6 +7,12 @@ import { Search, Pencil, Trash2, Star } from "lucide-react";
 import { toDate } from "../lib/firestore";
 import { articleCategoryLabel } from "../lib/articles";
 
+function isInteractiveTarget(target) {
+  return Boolean(
+    target.closest("a, button, input, select, textarea, [data-no-row-click]")
+  );
+}
+
 export default function AllBlogs() {
   const [articles, setArticles] = useState([]);
   const [search, setSearch] = useState("");
@@ -85,12 +91,19 @@ export default function AllBlogs() {
           </thead>
           <tbody>
             {filtered.map((a) => (
-              <tr key={a.id}>
+              <tr
+                key={a.id}
+                className="signet-table-row-clickable"
+                onClick={(e) => {
+                  if (isInteractiveTarget(e.target)) return;
+                  navigate(`/admin/all-blogs/${a.id}`);
+                }}
+              >
                 <td className="align-top">
                   <div className="flex items-start gap-2">
                     {a.featured && <Star size={14} className="mt-0.5 text-amber-500 fill-amber-500 shrink-0" />}
                     <div className="min-w-0">
-                      <p className="font-medium leading-snug">{a.title}</p>
+                      <p className="font-medium leading-snug signet-article-row-title">{a.title}</p>
                       {a.subtitle && <p className="text-xs opacity-60 mt-0.5">{a.subtitle}</p>}
                     </div>
                   </div>

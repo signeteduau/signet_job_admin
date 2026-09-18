@@ -8,5 +8,12 @@ export default defineConfig({
     host: true,
     port: 5173,
     strictPort: true,
+    proxy: {
+      "/__firebase-storage": {
+        target: "https://firebasestorage.googleapis.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/__firebase-storage/, ""),
+      },
+    },
   },
 })

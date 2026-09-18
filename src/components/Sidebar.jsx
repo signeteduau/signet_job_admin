@@ -21,6 +21,7 @@ import {
   ChevronDown,
   Settings,
   Scale,
+  Shield,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { signOut } from "firebase/auth";
@@ -29,7 +30,7 @@ import SignetLogo from "./SignetLogo";
 
 const SIDEBAR_STORAGE_KEY = "sidebar";
 const SIDEBAR_VERSION_KEY = "sidebar-version";
-const SIDEBAR_VERSION = "3";
+const SIDEBAR_VERSION = "4";
 
 const primaryNav = [
   { name: "Dashboard", to: "/admin", icon: LayoutDashboard, end: true },
@@ -62,10 +63,9 @@ const settingsItems = [
 ];
 
 const supportItems = [
-  { name: "All FAQs", to: "/admin/faqs", icon: HelpCircle },
-  { name: "Add FAQ", to: "/admin/faqs/add", icon: HelpCircle },
+  { name: "FAQs", to: "/admin/faqs", icon: HelpCircle },
   { name: "Terms & Conditions", to: "/admin/terms", icon: FileText },
-  { name: "Privacy Policy", to: "/admin/privacy", icon: FileText },
+  { name: "Privacy Policy", to: "/admin/privacy", icon: Shield },
 ];
 
 const settingsGroup = { name: "Settings", icon: Settings, children: settingsItems };

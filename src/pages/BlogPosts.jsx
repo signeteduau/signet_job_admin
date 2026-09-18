@@ -280,6 +280,11 @@ export default function BlogPosts() {
                   Loading categories…
                 </p>
               )}
+              {!loadingCats && categories.length === 0 && (
+                <p className="mt-1 text-xs text-[rgb(var(--foreground)/60%)]">
+                  No categories yet. Add one in the panel on the right.
+                </p>
+              )}
             </div>
 
             {/* Author */}

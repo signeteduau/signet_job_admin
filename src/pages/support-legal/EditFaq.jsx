@@ -8,7 +8,6 @@ import { ArrowLeft } from "lucide-react";
 import PageHeader from "../../components/ui/PageHeader";
 import PageShell from "../../components/ui/PageShell";
 import EmptyState from "../../components/ui/EmptyState";
-import SupportLegalNav from "../../components/support-legal/SupportLegalNav";
 import FaqForm from "../../components/support-legal/FaqForm";
 import { isHtmlEmpty } from "../../lib/supportLegal";
 
@@ -71,8 +70,11 @@ export default function EditFaq() {
       }, { merge: true });
       toast.success("FAQ updated");
       navigate("/admin/faqs");
-    } catch {
-      toast.error("Could not update FAQ");
+    } catch (err) {
+      console.error("Could not update FAQ:", err);
+      toast.error(err?.code === "permission-denied"
+        ? "You don't have permission to update FAQs."
+        : "Could not update FAQ");
     } finally {
       setSaving(false);
     }
@@ -103,12 +105,10 @@ export default function EditFaq() {
       </button>
 
       <PageHeader
-        eyebrow="Support & Legal"
+        eyebrow="FAQs"
         title="Edit FAQ"
         description="Update question, audience, or answer content"
       />
-
-      <SupportLegalNav />
 
       <FaqForm
         question={question}

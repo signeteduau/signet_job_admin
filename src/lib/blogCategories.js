@@ -18,10 +18,27 @@ function firestoreErrorMessage(err, fallback) {
 }
 
 export async function fetchBlogCategories() {
-  const snap = await getDocs(collection(db, "blogCategories"));
-  return snap.docs
-    .map((d) => ({ id: d.id, ...d.data() }))
-    .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  try {
+    const snap = await getDocs(collection(db, "blogCategories"));
+    const fromCollection = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .filter((c) => (c.name || "").trim())
+      .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    if (fromCollection.length) return fromCollection;
+  } catch (err) {
+    console.warn("blogCategories read failed, using article categories:", err);
+  }
+
+  const articlesSnap = await getDocs(collection(db, "articles"));
+  const byId = new Map();
+  for (const d of articlesSnap.docs) {
+    const data = d.data();
+    const name = String(data.categoryName || data.category || "").trim();
+    if (!name) continue;
+    const id = data.categoryId || name;
+    if (!byId.has(id)) byId.set(id, { id, name });
+  }
+  return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function createBlogCategory(name) {

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import StatusBadge from "../components/ui/StatusBadge";
+import { getResumeInsights, hasResumeHighlights } from "../lib/resumeInsights";
 import {
   ArrowLeft,
   Mail,
@@ -13,6 +14,11 @@ import {
   ExternalLink,
   FileText,
   ClipboardList,
+  Sparkles,
+  GraduationCap,
+  Loader2,
+  BookOpen,
+  Download,
 } from "lucide-react";
 
 function asText(value, fallback = "—") {
@@ -43,6 +49,21 @@ function formatDate(value) {
     month: "short",
     year: "numeric",
   });
+}
+
+function resumePreviewKind(url, fileName = "") {
+  const source = `${url} ${fileName}`.toLowerCase();
+  if (/\.(png|jpe?g|gif|webp)(\?|$)/.test(source) || source.includes("image%2F")) {
+    return "image";
+  }
+  if (
+    /\.pdf(\?|$)/.test(source) ||
+    source.includes("application%2Fpdf") ||
+    source.includes("pdf")
+  ) {
+    return "pdf";
+  }
+  return "file";
 }
 
 function initials(name) {
@@ -79,12 +100,84 @@ function Fact({ icon: Icon, label, value, href }) {
   return <div className="signet-cd-fact">{inner}</div>;
 }
 
+const RESUME_LOAD_STEPS = [
+  "Opening resume",
+  "Extracting text",
+  "Finding skills, experience, and education",
+];
+
+function ResumeHighlightsLoader() {
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setStep((current) => (current + 1) % RESUME_LOAD_STEPS.length);
+    }, 1200);
+    return () => window.clearInterval(id);
+  }, []);
+
+  return (
+    <div className="signet-cd-loader">
+      <div className="signet-cd-loader-status">
+        <Loader2 size={16} className="signet-cd-loader-spin" />
+        <div>
+          <p>{RESUME_LOAD_STEPS[step]}…</p>
+          <small>Highlights will appear here in a few seconds.</small>
+        </div>
+      </div>
+      <div className="signet-cd-highlight-grid" aria-hidden>
+        <div>
+          <h3>
+            <Award size={14} /> Skills
+          </h3>
+          <div className="signet-cd-skills">
+            <span className="signet-cd-skel signet-cd-skel-pill" />
+            <span className="signet-cd-skel signet-cd-skel-pill is-short" />
+            <span className="signet-cd-skel signet-cd-skel-pill" />
+            <span className="signet-cd-skel signet-cd-skel-pill is-short" />
+          </div>
+        </div>
+        <div>
+          <h3>
+            <Briefcase size={14} /> Experience
+          </h3>
+          <div className="signet-cd-skel-stack">
+            <span className="signet-cd-skel signet-cd-skel-line" />
+            <span className="signet-cd-skel signet-cd-skel-line is-mid" />
+            <span className="signet-cd-skel signet-cd-skel-line is-short" />
+          </div>
+        </div>
+        <div>
+          <h3>
+            <BookOpen size={14} /> Education
+          </h3>
+          <div className="signet-cd-skel-stack">
+            <span className="signet-cd-skel signet-cd-skel-line is-mid" />
+            <span className="signet-cd-skel signet-cd-skel-line is-short" />
+          </div>
+        </div>
+        <div>
+          <h3>
+            <GraduationCap size={14} /> Certifications
+          </h3>
+          <div className="signet-cd-skel-stack">
+            <span className="signet-cd-skel signet-cd-skel-line is-mid" />
+            <span className="signet-cd-skel signet-cd-skel-line is-short" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CandidateDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [candidate, setCandidate] = useState(null);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [resumeInsights, setResumeInsights] = useState(null);
+  const [insightsStatus, setInsightsStatus] = useState("idle");
 
   useEffect(() => {
     const fetchCandidate = async () => {
@@ -119,8 +212,44 @@ export default function CandidateDetail() {
     };
 
     setLoading(true);
+    setResumeInsights(null);
+    setInsightsStatus("idle");
     fetchCandidate();
   }, [id]);
+
+  const resumeUrl = [
+    candidate?.resumeUrl,
+    candidate?.resume,
+    applications.find((app) => app.resumeUrl)?.resumeUrl,
+  ]
+    .map((value) => (typeof value === "string" ? value.trim() : ""))
+    .find(Boolean) || "";
+  const resumeKind = resumePreviewKind(
+    resumeUrl,
+    candidate?.resumeFileName || candidate?.resumeFile || ""
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!candidate || !resumeUrl || resumeKind !== "pdf") {
+      setResumeInsights(null);
+      setInsightsStatus(resumeKind === "image" || resumeKind === "file" ? resumeKind : "idle");
+      return undefined;
+    }
+
+    setInsightsStatus("loading");
+    getResumeInsights(candidate.id, resumeUrl).then(({ insights, error }) => {
+      if (cancelled) return;
+      setResumeInsights(insights);
+      if (error === "failed" || error === "image") setInsightsStatus("failed");
+      else if (error === "empty" || !hasResumeHighlights(insights)) setInsightsStatus("empty");
+      else setInsightsStatus("ready");
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [candidate, resumeUrl, resumeKind]);
 
   if (loading) {
     return (
@@ -174,6 +303,10 @@ export default function CandidateDetail() {
   const profileComplete = !!candidate.profileCompleted;
   const emailHref = email !== "—" ? `mailto:${email}` : null;
   const phoneHref = phone !== "—" ? `tel:${phone.replace(/\s+/g, "")}` : null;
+  const resumeName = asText(
+    candidate.resumeFileName || candidate.resumeFile || "Resume",
+    "Resume"
+  );
 
   return (
     <div className="signet-cd-page animate-fade">
@@ -192,9 +325,9 @@ export default function CandidateDetail() {
               <Mail size={15} /> Email
             </a>
           )}
-          {candidate.resumeUrl && (
+          {resumeUrl && (
             <a
-              href={candidate.resumeUrl}
+              href={resumeUrl}
               target="_blank"
               rel="noreferrer"
               className="signet-btn"
@@ -240,10 +373,101 @@ export default function CandidateDetail() {
         </div>
       </section>
 
+      {(insightsStatus === "loading" ||
+        insightsStatus === "failed" ||
+        insightsStatus === "empty" ||
+        hasResumeHighlights(resumeInsights)) && (
+        <section className="signet-cd-card signet-cd-highlights">
+          <div className="signet-cd-highlights-head">
+            <h2>
+              <Sparkles size={16} /> Highlights from resume
+            </h2>
+            <p>
+              {insightsStatus === "loading"
+                ? "Scanning the uploaded file for skills, experience, education, and certifications."
+                : "Extracted automatically — always check the original file below."}
+            </p>
+          </div>
+
+          {insightsStatus === "loading" && <ResumeHighlightsLoader />}
+          {insightsStatus === "failed" && (
+            <p className="signet-cd-empty">
+              Could not read this resume automatically. Open the file below to review it.
+            </p>
+          )}
+          {insightsStatus === "empty" && (
+            <p className="signet-cd-empty">
+              No clear skills, experience, education, or certifications were found in the text.
+            </p>
+          )}
+
+          {insightsStatus === "ready" && (
+            <div className="signet-cd-highlight-grid">
+              <div>
+                <h3>
+                  <Award size={14} /> Skills
+                </h3>
+                {resumeInsights?.skills?.length ? (
+                  <div className="signet-cd-skills">
+                    {resumeInsights.skills.map((skill) => (
+                      <span key={skill}>{skill}</span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="signet-cd-empty">None found</p>
+                )}
+              </div>
+              <div>
+                <h3>
+                  <Briefcase size={14} /> Experience
+                </h3>
+                {resumeInsights?.experience?.length ? (
+                  <ul className="signet-cd-highlight-list">
+                    {resumeInsights.experience.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="signet-cd-empty">None found</p>
+                )}
+              </div>
+              <div>
+                <h3>
+                  <BookOpen size={14} /> Education
+                </h3>
+                {resumeInsights?.education?.length ? (
+                  <ul className="signet-cd-highlight-list">
+                    {resumeInsights.education.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="signet-cd-empty">None found</p>
+                )}
+              </div>
+              <div>
+                <h3>
+                  <GraduationCap size={14} /> Certifications
+                </h3>
+                {resumeInsights?.certifications?.length ? (
+                  <ul className="signet-cd-highlight-list">
+                    {resumeInsights.certifications.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="signet-cd-empty">None found</p>
+                )}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
       <div className="signet-cd-layout">
         <div className="signet-cd-main">
           <section className="signet-cd-card">
-            <h2>About</h2>
+            <h2>About me</h2>
             {about ? (
               <p className="signet-cd-about">{about}</p>
             ) : (
@@ -308,6 +532,67 @@ export default function CandidateDetail() {
           </section>
         </aside>
       </div>
+
+      <section className="signet-cd-card signet-cd-resume">
+        <div className="signet-cd-resume-head">
+          <div>
+            <h2>
+              <FileText size={16} /> Resume
+            </h2>
+            <p>{resumeUrl ? resumeName : "No resume uploaded"}</p>
+          </div>
+          {resumeUrl && (
+            <div className="signet-cd-resume-actions">
+              <a
+                href={resumeUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="signet-cd-resume-open"
+              >
+                <ExternalLink size={16} />
+                Open in new tab
+              </a>
+              <a
+                href={resumeUrl}
+                download={resumeName}
+                className="signet-btn-secondary"
+              >
+                <Download size={16} />
+                Download
+              </a>
+            </div>
+          )}
+        </div>
+
+        {resumeUrl ? (
+          <div className="signet-cd-resume-frame">
+            <div className="signet-cd-resume-preview-bar">
+              <span>Document preview</span>
+              <a
+                href={resumeUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="signet-cd-resume-open signet-cd-resume-open--compact"
+                title="Open resume in a new tab"
+              >
+                <ExternalLink size={15} />
+                Open
+              </a>
+            </div>
+            {resumeKind === "image" ? (
+              <img src={resumeUrl} alt={`${name} resume`} />
+            ) : (
+              <iframe
+                title={`${name} resume`}
+                src={resumeUrl}
+                className="signet-cd-resume-embed"
+              />
+            )}
+          </div>
+        ) : (
+          <p className="signet-cd-empty">This candidate has not uploaded a resume yet.</p>
+        )}
+      </section>
     </div>
   );
 }

@@ -71,55 +71,55 @@ export default function AllBlogs() {
         </div>
       </div>
 
-      <div className="signet-table-wrap">
-        <table className="w-full text-sm">
-          <thead className="bg-[rgb(var(--card))]">
+      <div className="signet-table-wrap overflow-x-auto">
+        <table className="signet-table signet-articles-table">
+          <thead>
             <tr>
-              <th className="text-left px-4 py-3">Title</th>
-              <th className="text-left px-4 py-3">Category</th>
-              <th className="text-left px-4 py-3">Author</th>
-              <th className="text-left px-4 py-3">Tags</th>
-              <th className="text-left px-4 py-3">Date</th>
-              <th className="text-left px-4 py-3">Actions</th>
+              <th>Title</th>
+              <th className="w-44">Category</th>
+              <th className="w-36">Author</th>
+              <th>Tags</th>
+              <th className="w-32">Date</th>
+              <th className="w-24">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((a) => (
-              <tr key={a.id} className="border-t border-[rgb(var(--card-border))] hover:bg-[rgb(var(--purple))/4%]">
-                <td className="px-4 py-3 font-medium">
-                  <div className="flex items-center gap-2">
-                    {a.featured && <Star size={14} className="text-amber-500 fill-amber-500" />}
-                    {a.title}
+              <tr key={a.id}>
+                <td className="align-top">
+                  <div className="flex items-start gap-2">
+                    {a.featured && <Star size={14} className="mt-0.5 text-amber-500 fill-amber-500 shrink-0" />}
+                    <div className="min-w-0">
+                      <p className="font-medium leading-snug">{a.title}</p>
+                      {a.subtitle && <p className="text-xs opacity-60 mt-0.5">{a.subtitle}</p>}
+                    </div>
                   </div>
-                  {a.subtitle && <p className="text-xs opacity-60 mt-0.5">{a.subtitle}</p>}
                 </td>
-                <td className="px-4 py-3">
-                  {articleCategoryLabel(a) !== "—" ? (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-[rgb(var(--purple))/10%] text-[rgb(var(--purple))]">
-                      {articleCategoryLabel(a)}
-                    </span>
-                  ) : (
-                    "—"
-                  )}
+                <td className="align-top">
+                  <span className="signet-badge signet-badge--info">
+                    {articleCategoryLabel(a)}
+                  </span>
                 </td>
-                <td className="px-4 py-3">{a.author || "—"}</td>
-                <td className="px-4 py-3">
+                <td className="align-top whitespace-nowrap">{a.author || "—"}</td>
+                <td className="align-top">
                   <div className="flex flex-wrap gap-1">
                     {(a.tags || []).slice(0, 3).map((t) => (
-                      <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-[rgb(var(--purple))/10%] text-[rgb(var(--purple))]">{t}</span>
+                      <span key={t} className="signet-badge signet-badge--neutral">{t}</span>
                     ))}
                   </div>
                 </td>
-                <td className="px-4 py-3">
+                <td className="align-top whitespace-nowrap">
                   {toDate(a.createdAt)?.toLocaleDateString() || "—"}
                 </td>
-                <td className="px-4 py-3 flex gap-3">
-                  <button className="text-[rgb(var(--purple))] hover:opacity-80" onClick={() => navigate(`/admin/all-blogs/edit/${a.id}`)}>
-                    <Pencil size={16} />
-                  </button>
-                  <button className="text-red-500 hover:opacity-80" onClick={() => deleteArticle(a.id)}>
-                    <Trash2 size={16} />
-                  </button>
+                <td className="align-top">
+                  <div className="flex items-center gap-3">
+                    <button className="text-[#004CF0] hover:opacity-80" onClick={() => navigate(`/admin/all-blogs/edit/${a.id}`)}>
+                      <Pencil size={16} />
+                    </button>
+                    <button className="text-red-500 hover:opacity-80" onClick={() => deleteArticle(a.id)}>
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

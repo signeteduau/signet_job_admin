@@ -7,7 +7,6 @@ import { ArrowLeft } from "lucide-react";
 
 import PageHeader from "../../components/ui/PageHeader";
 import PageShell from "../../components/ui/PageShell";
-import SupportLegalNav from "../../components/support-legal/SupportLegalNav";
 import FaqForm from "../../components/support-legal/FaqForm";
 import { isHtmlEmpty } from "../../lib/supportLegal";
 
@@ -50,8 +49,11 @@ export default function AddFaq() {
       });
       toast.success("FAQ added successfully");
       navigate("/admin/faqs");
-    } catch {
-      toast.error("Could not save FAQ");
+    } catch (err) {
+      console.error("Could not save FAQ:", err);
+      toast.error(err?.code === "permission-denied"
+        ? "You don't have permission to publish FAQs."
+        : "Could not save FAQ");
     } finally {
       setSaving(false);
     }
@@ -64,12 +66,10 @@ export default function AddFaq() {
       </button>
 
       <PageHeader
-        eyebrow="Support & Legal"
+        eyebrow="FAQs"
         title="Add FAQ"
         description="Create a new help article for Signet users"
       />
-
-      <SupportLegalNav />
 
       <FaqForm
         question={question}

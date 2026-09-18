@@ -258,6 +258,9 @@ export default function Applications() {
           filteredCount={filteredData.length}
           emptyTitle="No applications found"
           emptyDescription="Applications appear when candidates apply to jobs on Signet."
+          onRowClick={(row) => {
+            if (row.userId) navigate(`/admin/candidates/${row.userId}`);
+          }}
         />
       )}
     </div>

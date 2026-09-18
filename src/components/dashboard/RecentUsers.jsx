@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
 import DashboardWidget from "../ui/DashboardWidget";
@@ -6,6 +7,7 @@ import EmptyState from "../ui/EmptyState";
 import StatusBadge from "../ui/StatusBadge";
 
 export default function RecentUsers() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -55,15 +57,27 @@ export default function RecentUsers() {
           {users.map((u) => {
             const name = u.fullName || u.companyName || "Unnamed";
             const color = typeColor[u.userType] || "#004CF0";
+            const href =
+              u.userType === "candidate"
+                ? `/admin/candidates/${u.id}`
+                : u.userType === "company"
+                ? `/admin/companies/${u.id}`
+                : null;
             return (
-              <div key={u.id} className="signet-user-row">
+              <button
+                key={u.id}
+                type="button"
+                className="signet-user-row"
+                disabled={!href}
+                onClick={() => href && navigate(href)}
+              >
                 <div
                   className="signet-user-row-avatar"
                   style={{ background: `${color}14`, color }}
                 >
                   {name.charAt(0).toUpperCase()}
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 text-left">
                   <strong className="block truncate text-sm">{name}</strong>
                   <span className="text-xs text-[rgb(var(--foreground)/55%)] capitalize">
                     {u.userType || "user"}
@@ -77,7 +91,7 @@ export default function RecentUsers() {
                       : "—"}
                   </span>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>

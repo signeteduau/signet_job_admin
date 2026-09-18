@@ -351,6 +351,7 @@ export default function Companies() {
               ? "Try clearing filters or broadening your search."
               : "Companies appear when employers register on Signet."
           }
+          onRowClick={(row) => navigate(`/admin/companies/${row.id}`)}
         />
       )}
     </div>

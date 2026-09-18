@@ -22,9 +22,13 @@ export default function TableActions({ onView, onEdit, onDelete }) {
   if (items.length === 0) return null;
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative" ref={ref} data-no-row-click>
       <button
-        onClick={() => setOpen(!open)}
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen(!open);
+        }}
         className="signet-icon-btn !w-9 !h-9 !rounded-xl"
         aria-label="Row actions"
       >

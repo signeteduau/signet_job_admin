@@ -57,7 +57,15 @@ export default function Topbar() {
     "/admin/faqs/add": "Add FAQ",
   };
 
-  const pageTitle = titles[pathname] || "Signet Admin";
+  const pageTitle =
+    titles[pathname] ||
+    (pathname.startsWith("/admin/candidates/")
+      ? "Candidate details"
+      : pathname.startsWith("/admin/companies/")
+      ? "Company details"
+      : pathname.startsWith("/admin/jobs/")
+      ? "Job details"
+      : "Signet Admin");
 
   const [showNotif, setShowNotif] = useState(false);
   const [showProfile, setShowProfile] = useState(false);

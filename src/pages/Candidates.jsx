@@ -259,6 +259,7 @@ export default function Candidates() {
           filteredCount={filteredData.length}
           emptyTitle="No candidates found"
           emptyDescription="Candidates appear when job seekers register on Signet."
+          onRowClick={(row) => navigate(`/admin/candidates/${row.id}`)}
         />
       )}
     </div>

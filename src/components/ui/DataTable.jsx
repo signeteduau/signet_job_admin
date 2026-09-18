@@ -2,11 +2,18 @@ import { flexRender } from "@tanstack/react-table";
 import EmptyState from "./EmptyState";
 import TablePagination from "./TablePagination";
 
+function isInteractiveTarget(target) {
+  return Boolean(
+    target.closest("a, button, input, select, textarea, [data-no-row-click]")
+  );
+}
+
 export default function DataTable({
   table,
   filteredCount,
   emptyTitle = "No results found",
   emptyDescription = "Try adjusting your filters.",
+  onRowClick,
 }) {
   if (filteredCount === 0) {
     return (
@@ -36,7 +43,14 @@ export default function DataTable({
         </thead>
         <tbody>
           {table.getRowModel().rows.map((row) => (
-            <tr key={row.id}>
+            <tr
+              key={row.id}
+              className={onRowClick ? "signet-table-row-clickable" : ""}
+              onClick={(e) => {
+                if (!onRowClick || isInteractiveTarget(e.target)) return;
+                onRowClick(row.original);
+              }}
+            >
               {row.getVisibleCells().map((cell) => (
                 <td key={cell.id}>
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}

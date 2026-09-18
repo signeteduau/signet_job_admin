@@ -3,6 +3,7 @@ import { db } from "../../firebase";
 import { collection, getDocs, updateDoc, doc } from "firebase/firestore";
 import { Search, ShieldCheck } from "lucide-react";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 import PageHeader from "../../components/ui/PageHeader";
 import PageShell from "../../components/ui/PageShell";
@@ -23,6 +24,7 @@ const ROLE_LABELS = {
 };
 
 export default function UserRoles() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
@@ -80,21 +82,32 @@ export default function UserRoles() {
         accessorKey: "fullName",
         header: "User",
         cell: ({ row }) => {
-          const name = row.original.fullName || "Unnamed";
+          const name = row.original.fullName || row.original.companyName || "Unnamed";
           const initials = name
             .split(" ")
             .map((n) => n[0])
             .join("")
             .substring(0, 2)
             .toUpperCase();
+          const href =
+            row.original.userType === "candidate"
+              ? `/admin/candidates/${row.original.id}`
+              : row.original.userType === "company"
+              ? `/admin/companies/${row.original.id}`
+              : null;
           return (
-            <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="flex items-center gap-3 text-left"
+              disabled={!href}
+              onClick={() => href && navigate(href)}
+            >
               <div className="signet-avatar-fallback rounded-full">{initials}</div>
               <div>
                 <p className="font-semibold">{name}</p>
                 <p className="text-xs text-[rgb(var(--foreground)/50%)]">{row.original.email}</p>
               </div>
-            </div>
+            </button>
           );
         },
       },
@@ -117,7 +130,7 @@ export default function UserRoles() {
         ),
       },
     ],
-    []
+    [navigate]
   );
 
   const table = useReactTable({

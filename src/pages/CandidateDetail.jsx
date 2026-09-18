@@ -1,173 +1,312 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
+import StatusBadge from "../components/ui/StatusBadge";
 import {
   ArrowLeft,
   Mail,
   MapPin,
-  Calendar,
   Briefcase,
-  UserCircle2,
   Award,
-  Clock,
-  CircleDot,
+  Phone,
+  ExternalLink,
+  FileText,
+  ClipboardList,
 } from "lucide-react";
+
+function asText(value, fallback = "—") {
+  if (value == null || value === "") return fallback;
+  if (typeof value === "string" || typeof value === "number") return String(value);
+  if (typeof value === "object") {
+    return value.name || value.title || value.label || fallback;
+  }
+  return fallback;
+}
+
+function skillLabel(skill) {
+  return asText(skill, "").trim();
+}
+
+function toDate(value) {
+  if (!value) return null;
+  if (typeof value.toDate === "function") return value.toDate();
+  if (value instanceof Date) return value;
+  return null;
+}
+
+function formatDate(value) {
+  const date = toDate(value);
+  if (!date) return "—";
+  return date.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function initials(name) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase() || "C";
+}
+
+function Fact({ icon: Icon, label, value, href }) {
+  const inner = (
+    <>
+      <span className="signet-cd-fact-icon">
+        <Icon size={15} />
+      </span>
+      <span className="signet-cd-fact-copy">
+        <small>{label}</small>
+        <strong>{value}</strong>
+      </span>
+    </>
+  );
+
+  if (href && value !== "—") {
+    return (
+      <a href={href} className="signet-cd-fact is-link">
+        {inner}
+      </a>
+    );
+  }
+
+  return <div className="signet-cd-fact">{inner}</div>;
+}
 
 export default function CandidateDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [candidate, setCandidate] = useState(null);
+  const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchCandidate = async () => {
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+
       try {
         const snap = await getDoc(doc(db, "users", id));
-        if (snap.exists()) setCandidate({ id: snap.id, ...snap.data() });
+        setCandidate(snap.exists() ? { id: snap.id, ...snap.data() } : null);
+
+        try {
+          const appsSnap = await getDocs(
+            collection(db, "applications", id, "userApplications")
+          );
+          setApplications(
+            appsSnap.docs
+              .map((d) => ({ id: d.id, ...d.data() }))
+              .sort((a, b) => (toDate(b.appliedAt) || 0) - (toDate(a.appliedAt) || 0))
+          );
+        } catch (err) {
+          console.warn("Could not load candidate applications:", err);
+          setApplications([]);
+        }
       } catch (err) {
         console.error("Error loading candidate:", err);
+        setCandidate(null);
       } finally {
         setLoading(false);
       }
     };
+
+    setLoading(true);
     fetchCandidate();
   }, [id]);
 
-  if (loading)
-    return <div className="p-8 text-sm opacity-70">Loading candidate details…</div>;
+  if (loading) {
+    return (
+      <div className="signet-cd-page animate-pulse">
+        <div className="signet-chart-skeleton h-8 w-36" />
+        <div className="signet-chart-skeleton h-52" />
+        <div className="signet-cd-layout">
+          <div className="signet-chart-skeleton h-72" />
+          <div className="signet-chart-skeleton h-72" />
+        </div>
+      </div>
+    );
+  }
 
-  if (!candidate)
-    return <div className="p-8 text-sm opacity-70">Candidate not found.</div>;
+  if (!candidate) {
+    return (
+      <div className="signet-cd-page">
+        <div className="signet-panel p-10 text-center">
+          <p className="signet-empty-title">Candidate not found</p>
+          <p className="signet-empty-desc mt-2">
+            This profile may have been removed or could not be loaded.
+          </p>
+          <button
+            type="button"
+            className="signet-btn mt-4"
+            onClick={() => navigate("/admin/candidates")}
+          >
+            Back to candidates
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-  // Helper for time formatting
-  const formatDate = (timestamp) => {
-    if (!timestamp?.toDate) return "—";
-    const date = timestamp.toDate();
-    return date.toLocaleDateString() + " " + date.toLocaleTimeString();
-  };
+  const name = asText(candidate.fullName || candidate.name, "Unnamed candidate");
+  const occupation = asText(candidate.occupation, "");
+  const email = asText(candidate.email);
+  const phone = [candidate.phoneCountryCode, candidate.phone]
+    .filter(Boolean)
+    .join(" ")
+    .trim() || "—";
+  const location = asText(candidate.address || candidate.country);
+  const experience =
+    candidate.experienceYears === 0 || candidate.experienceYears
+      ? `${candidate.experienceYears} yrs`
+      : "—";
+  const skills = Array.isArray(candidate.skills)
+    ? candidate.skills.map(skillLabel).filter(Boolean)
+    : [];
+  const about = asText(candidate.aboutMe || candidate.about, "");
+  const profileComplete = !!candidate.profileCompleted;
+  const emailHref = email !== "—" ? `mailto:${email}` : null;
+  const phoneHref = phone !== "—" ? `tel:${phone.replace(/\s+/g, "")}` : null;
 
   return (
-    <div className="p-8 animate-fade">
-      {/* Back Button */}
-      <button
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-2 mb-6 text-[rgb(var(--purple))] hover:opacity-80"
-      >
-        <ArrowLeft size={18} /> Back
-      </button>
+    <div className="signet-cd-page animate-fade">
+      <div className="signet-cd-toolbar">
+        <button
+          type="button"
+          onClick={() => navigate("/admin/candidates")}
+          className="signet-back-link"
+        >
+          <ArrowLeft size={16} /> Candidates
+        </button>
 
-      {/* Profile Card */}
-      <div className="bg-[rgb(var(--card))] border border-[rgb(var(--card-border))] rounded-2xl p-8 shadow-sm mx-auto">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-center gap-6 mb-8">
-          {candidate.profileImage ? (
-            <img
-              src={candidate.profileImage}
-              alt={candidate.fullName}
-              className="w-28 h-28 rounded-full object-cover border border-[rgb(var(--card-border))]"
-            />
-          ) : (
-            <div className="w-28 h-28 rounded-full bg-[rgb(var(--purple))/20%] flex items-center justify-center text-[rgb(var(--purple))] text-5xl">
-              <UserCircle2 size={64} />
-            </div>
+        <div className="signet-cd-toolbar-actions">
+          {emailHref && (
+            <a href={emailHref} className="signet-btn-secondary">
+              <Mail size={15} /> Email
+            </a>
           )}
-
-          <div className="text-center sm:text-left">
-            <h1 className="text-2xl font-semibold">
-              {candidate.fullName || candidate.name || "Unnamed Candidate"}
-            </h1>
-            <p className="opacity-70">{candidate.occupation || "—"}</p>
-
-            <div className="mt-3 flex flex-wrap justify-center sm:justify-start gap-3 text-sm">
-              <span
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 ${
-                  candidate.isOnline
-                    ? "bg-green-600/20 text-green-500"
-                    : "bg-gray-600/20 text-gray-400"
-                }`}
-              >
-                <CircleDot size={10} />
-                {candidate.isOnline ? "Online" : "Offline"}
-              </span>
-
-              {candidate.lastSeen && !candidate.isOnline && (
-                <span className="text-xs flex items-center gap-1 opacity-70">
-                  <Clock size={12} /> Last Seen: {formatDate(candidate.lastSeen)}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Info Grid */}
-        <div className="grid sm:grid-cols-2 gap-x-8 gap-y-5 text-sm">
-          <div className="flex items-center gap-2">
-            <Mail size={16} className="opacity-70" />
-            <span>{candidate.email || "—"}</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <MapPin size={16} className="opacity-70" />
-            <span>{candidate.address || candidate.country || "—"}</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Briefcase size={16} className="opacity-70" />
-            <span>Experience: {candidate.experienceYears || "—"}</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Calendar size={16} className="opacity-70" />
-            <span>Phone: {candidate.phoneCountryCode || ""}{candidate.phone || "—"}</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Briefcase size={16} className="opacity-70" />
-            <span>
-              Joined: {formatDate(candidate.createdAt)}
-            </span>
-          </div>
-
           {candidate.resumeUrl && (
-            <a href={candidate.resumeUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-[rgb(var(--purple))] hover:underline sm:col-span-2">
-              View Resume ({candidate.resumeFileName || "PDF"})
+            <a
+              href={candidate.resumeUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="signet-btn"
+            >
+              <FileText size={15} /> Resume
             </a>
           )}
         </div>
+      </div>
 
-        {/* About Section */}
-        {candidate.aboutMe && (
-          <div className="mt-8">
-            <h2 className="font-semibold mb-2">About</h2>
-            <p className="opacity-80 leading-relaxed">{candidate.aboutMe}</p>
+      <section className="signet-cd-hero">
+        <div className="signet-cd-identity">
+          {candidate.profileImage ? (
+            <img src={candidate.profileImage} alt={name} className="signet-cd-avatar" />
+          ) : (
+            <div className="signet-cd-avatar signet-cd-avatar--fallback">
+              {initials(name)}
+            </div>
+          )}
+
+          <div className="min-w-0">
+            <div className="signet-cd-badges">
+              <span className="signet-badge signet-badge--info">Candidate</span>
+              <StatusBadge status={profileComplete ? "Complete" : "Incomplete"} />
+            </div>
+            <h1>{name}</h1>
+            <p className="signet-cd-role">
+              {occupation || "Occupation not added"}
+              {experience !== "—" ? ` · ${experience} experience` : ""}
+            </p>
+            <p className="signet-cd-meta">
+              Joined {formatDate(candidate.createdAt)}
+              {candidate.updatedAt ? ` · Updated ${formatDate(candidate.updatedAt)}` : ""}
+            </p>
           </div>
-        )}
+        </div>
 
-        {/* ✅ Skills Section (Fixed) */}
-        {Array.isArray(candidate.skills) && candidate.skills.length > 0 && (
-          <div className="mt-8">
-            <h2 className="font-semibold mb-3 flex items-center gap-2">
+        <div className="signet-cd-facts">
+          <Fact icon={Mail} label="Email" value={email} href={emailHref} />
+          <Fact icon={Phone} label="Phone" value={phone} href={phoneHref} />
+          <Fact icon={MapPin} label="Location" value={location} />
+          <Fact icon={Briefcase} label="Experience" value={experience} />
+        </div>
+      </section>
+
+      <div className="signet-cd-layout">
+        <div className="signet-cd-main">
+          <section className="signet-cd-card">
+            <h2>About</h2>
+            {about ? (
+              <p className="signet-cd-about">{about}</p>
+            ) : (
+              <p className="signet-cd-empty">No bio added yet.</p>
+            )}
+          </section>
+
+          <section className="signet-cd-card">
+            <h2>
               <Award size={16} /> Skills
             </h2>
-            <div className="flex flex-wrap gap-2">
-              {candidate.skills.map((skill, i) => (
-                <span
-                  key={i}
-                  className="px-3 py-1 rounded-full text-xs bg-[rgb(var(--purple))/15%] text-[rgb(var(--purple))] border border-[rgb(var(--purple))/30%] font-medium"
-                >
-                  {skill}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Footer */}
-        <div className="mt-10 flex flex-wrap justify-between text-xs opacity-60 gap-2">
-          <p>Updated: {formatDate(candidate.updatedAt)}</p>
-          <p>Account Type: {candidate.userType || "—"}</p>
+            {skills.length > 0 ? (
+              <div className="signet-cd-skills">
+                {skills.map((skill) => (
+                  <span key={skill}>{skill}</span>
+                ))}
+              </div>
+            ) : (
+              <p className="signet-cd-empty">No skills listed.</p>
+            )}
+          </section>
         </div>
+
+        <aside className="signet-cd-aside">
+          <section className="signet-cd-card">
+            <div className="signet-cd-aside-head">
+              <div>
+                <h2>
+                  <ClipboardList size={16} /> Applications
+                </h2>
+                <p>{applications.length} submitted</p>
+              </div>
+            </div>
+
+            {applications.length === 0 ? (
+              <p className="signet-cd-empty">No applications yet.</p>
+            ) : (
+              <div className="signet-cd-apps">
+                {applications.map((app) => (
+                  <button
+                    key={app.id}
+                    type="button"
+                    className="signet-cd-app"
+                    onClick={() => app.jobId && navigate(`/admin/jobs/${app.jobId}`)}
+                  >
+                    <span className="signet-cd-app-title">
+                      {asText(app.title, "Untitled role")}
+                    </span>
+                    <span className="signet-cd-app-meta">
+                      {[asText(app.companyName, ""), asText(app.location, ""), formatDate(app.appliedAt)]
+                        .filter((part) => part && part !== "—")
+                        .join(" · ")}
+                    </span>
+                    {app.status && (
+                      <StatusBadge status={app.status} />
+                    )}
+                    {app.jobId && <ExternalLink size={13} className="signet-cd-app-arrow" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
+        </aside>
       </div>
     </div>
   );

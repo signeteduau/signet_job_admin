@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import StatusBadge from "../components/ui/StatusBadge";
-import { getResumeInsights, hasResumeHighlights } from "../lib/resumeInsights";
 import {
   ArrowLeft,
   Mail,
@@ -14,10 +13,6 @@ import {
   ExternalLink,
   FileText,
   ClipboardList,
-  Sparkles,
-  GraduationCap,
-  Loader2,
-  BookOpen,
   Download,
 } from "lucide-react";
 
@@ -100,84 +95,12 @@ function Fact({ icon: Icon, label, value, href }) {
   return <div className="signet-cd-fact">{inner}</div>;
 }
 
-const RESUME_LOAD_STEPS = [
-  "Opening resume",
-  "Extracting text",
-  "Finding skills, experience, and education",
-];
-
-function ResumeHighlightsLoader() {
-  const [step, setStep] = useState(0);
-
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setStep((current) => (current + 1) % RESUME_LOAD_STEPS.length);
-    }, 1200);
-    return () => window.clearInterval(id);
-  }, []);
-
-  return (
-    <div className="signet-cd-loader">
-      <div className="signet-cd-loader-status">
-        <Loader2 size={16} className="signet-cd-loader-spin" />
-        <div>
-          <p>{RESUME_LOAD_STEPS[step]}…</p>
-          <small>Highlights will appear here in a few seconds.</small>
-        </div>
-      </div>
-      <div className="signet-cd-highlight-grid" aria-hidden>
-        <div>
-          <h3>
-            <Award size={14} /> Skills
-          </h3>
-          <div className="signet-cd-skills">
-            <span className="signet-cd-skel signet-cd-skel-pill" />
-            <span className="signet-cd-skel signet-cd-skel-pill is-short" />
-            <span className="signet-cd-skel signet-cd-skel-pill" />
-            <span className="signet-cd-skel signet-cd-skel-pill is-short" />
-          </div>
-        </div>
-        <div>
-          <h3>
-            <Briefcase size={14} /> Experience
-          </h3>
-          <div className="signet-cd-skel-stack">
-            <span className="signet-cd-skel signet-cd-skel-line" />
-            <span className="signet-cd-skel signet-cd-skel-line is-mid" />
-            <span className="signet-cd-skel signet-cd-skel-line is-short" />
-          </div>
-        </div>
-        <div>
-          <h3>
-            <BookOpen size={14} /> Education
-          </h3>
-          <div className="signet-cd-skel-stack">
-            <span className="signet-cd-skel signet-cd-skel-line is-mid" />
-            <span className="signet-cd-skel signet-cd-skel-line is-short" />
-          </div>
-        </div>
-        <div>
-          <h3>
-            <GraduationCap size={14} /> Certifications
-          </h3>
-          <div className="signet-cd-skel-stack">
-            <span className="signet-cd-skel signet-cd-skel-line is-mid" />
-            <span className="signet-cd-skel signet-cd-skel-line is-short" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function CandidateDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [candidate, setCandidate] = useState(null);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [resumeInsights, setResumeInsights] = useState(null);
-  const [insightsStatus, setInsightsStatus] = useState("idle");
 
   useEffect(() => {
     const fetchCandidate = async () => {
@@ -212,8 +135,6 @@ export default function CandidateDetail() {
     };
 
     setLoading(true);
-    setResumeInsights(null);
-    setInsightsStatus("idle");
     fetchCandidate();
   }, [id]);
 
@@ -228,28 +149,6 @@ export default function CandidateDetail() {
     resumeUrl,
     candidate?.resumeFileName || candidate?.resumeFile || ""
   );
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!candidate || !resumeUrl || resumeKind !== "pdf") {
-      setResumeInsights(null);
-      setInsightsStatus(resumeKind === "image" || resumeKind === "file" ? resumeKind : "idle");
-      return undefined;
-    }
-
-    setInsightsStatus("loading");
-    getResumeInsights(candidate.id, resumeUrl).then(({ insights, error }) => {
-      if (cancelled) return;
-      setResumeInsights(insights);
-      if (error === "failed" || error === "image") setInsightsStatus("failed");
-      else if (error === "empty" || !hasResumeHighlights(insights)) setInsightsStatus("empty");
-      else setInsightsStatus("ready");
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [candidate, resumeUrl, resumeKind]);
 
   if (loading) {
     return (
@@ -381,97 +280,6 @@ export default function CandidateDetail() {
           <p className="signet-cd-empty">No bio added yet.</p>
         )}
       </section>
-
-      {(insightsStatus === "loading" ||
-        insightsStatus === "failed" ||
-        insightsStatus === "empty" ||
-        hasResumeHighlights(resumeInsights)) && (
-        <section className="signet-cd-card signet-cd-highlights">
-          <div className="signet-cd-highlights-head">
-            <h2>
-              <Sparkles size={16} /> Highlights from resume
-            </h2>
-            <p>
-              {insightsStatus === "loading"
-                ? "Scanning the uploaded file for skills, experience, education, and certifications."
-                : "Extracted automatically — always check the original file below."}
-            </p>
-          </div>
-
-          {insightsStatus === "loading" && <ResumeHighlightsLoader />}
-          {insightsStatus === "failed" && (
-            <p className="signet-cd-empty">
-              Could not read this resume automatically. Open the file below to review it.
-            </p>
-          )}
-          {insightsStatus === "empty" && (
-            <p className="signet-cd-empty">
-              No clear skills, experience, education, or certifications were found in the text.
-            </p>
-          )}
-
-          {insightsStatus === "ready" && (
-            <div className="signet-cd-highlight-grid">
-              <div>
-                <h3>
-                  <Award size={14} /> Skills
-                </h3>
-                {resumeInsights?.skills?.length ? (
-                  <div className="signet-cd-skills">
-                    {resumeInsights.skills.map((skill) => (
-                      <span key={skill}>{skill}</span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="signet-cd-empty">None found</p>
-                )}
-              </div>
-              <div>
-                <h3>
-                  <Briefcase size={14} /> Experience
-                </h3>
-                {resumeInsights?.experience?.length ? (
-                  <ul className="signet-cd-highlight-list">
-                    {resumeInsights.experience.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="signet-cd-empty">None found</p>
-                )}
-              </div>
-              <div>
-                <h3>
-                  <BookOpen size={14} /> Education
-                </h3>
-                {resumeInsights?.education?.length ? (
-                  <ul className="signet-cd-highlight-list">
-                    {resumeInsights.education.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="signet-cd-empty">None found</p>
-                )}
-              </div>
-              <div>
-                <h3>
-                  <GraduationCap size={14} /> Certifications
-                </h3>
-                {resumeInsights?.certifications?.length ? (
-                  <ul className="signet-cd-highlight-list">
-                    {resumeInsights.certifications.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="signet-cd-empty">None found</p>
-                )}
-              </div>
-            </div>
-          )}
-        </section>
-      )}
 
       <div className="signet-cd-layout">
         <div className="signet-cd-main">

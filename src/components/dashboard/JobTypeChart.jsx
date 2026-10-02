@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { db } from "../../firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
@@ -8,6 +9,7 @@ import { PIE_COLORS } from "../../lib/chartTheme";
 import { ChartTooltipContent } from "../charts/ChartTooltipContent";
 
 export default function JobTypeChart() {
+  const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -35,7 +37,7 @@ export default function JobTypeChart() {
   const total = data.reduce((sum, d) => sum + d.value, 0);
 
   return (
-    <DashboardWidget title="Jobs by type" subtitle="Distribution of active listings">
+    <DashboardWidget title="Jobs by type" subtitle="Distribution of active listings" to="/admin/jobs">
       {loading ? (
         <div className="signet-chart-skeleton h-[280px]" />
       ) : data.length === 0 ? (
@@ -73,7 +75,12 @@ export default function JobTypeChart() {
             {data.map((item, i) => {
               const pct = total ? Math.round((item.value / total) * 100) : 0;
               return (
-                <div key={item.name} className="signet-chart-legend-row">
+                <button
+                  key={item.name}
+                  type="button"
+                  className="signet-chart-legend-row is-link"
+                  onClick={() => navigate("/admin/jobs")}
+                >
                   <span
                     className="signet-chart-legend-dot shrink-0"
                     style={{ background: PIE_COLORS[i % PIE_COLORS.length] }}
@@ -95,7 +102,7 @@ export default function JobTypeChart() {
                       />
                     </div>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>

@@ -97,10 +97,10 @@ export default function Dashboard() {
             [1, 2, 3, 4].map((i) => <div key={i} className="signet-chart-skeleton h-[168px]" />)
           ) : (
             <>
-              <StatCard label="Companies" value={stats.companies} previous={stats.companiesPrev} trend={stats.trends.companies} color="#004CF0" icon={Building2} />
-              <StatCard label="Candidates" value={stats.candidates} previous={stats.candidatesPrev} trend={stats.trends.candidates} color="#00B4D8" icon={Users} />
-              <StatCard label="Jobs" value={stats.jobs} previous={stats.jobsPrev} trend={stats.trends.jobs} color="#2F6BFF" icon={Briefcase} />
-              <StatCard label="Applications" value={stats.applications} previous={stats.applicationsPrev} trend={stats.trends.applications} color="#10B981" icon={ClipboardList} />
+              <StatCard label="Companies" value={stats.companies} previous={stats.companiesPrev} trend={stats.trends.companies} color="#004CF0" icon={Building2} to="/admin/companies" />
+              <StatCard label="Candidates" value={stats.candidates} previous={stats.candidatesPrev} trend={stats.trends.candidates} color="#00B4D8" icon={Users} to="/admin/candidates" />
+              <StatCard label="Jobs" value={stats.jobs} previous={stats.jobsPrev} trend={stats.trends.jobs} color="#2F6BFF" icon={Briefcase} to="/admin/jobs" />
+              <StatCard label="Applications" value={stats.applications} previous={stats.applicationsPrev} trend={stats.trends.applications} color="#10B981" icon={ClipboardList} to="/admin/applications" />
             </>
           )}
         </div>

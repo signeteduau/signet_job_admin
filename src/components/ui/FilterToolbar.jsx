@@ -15,11 +15,12 @@ export default function FilterToolbar({
   onClear,
   hasActiveFilters = false,
   resultSummary,
+  children,
 }) {
   return (
     <div className="signet-filter-bar space-y-3">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="signet-filter-search flex items-center gap-2 flex-1 min-w-[260px]">
+        <div className="signet-filter-search flex items-center gap-2 w-full min-w-0 flex-1 sm:min-w-[220px]">
           <Search size={16} className="opacity-50 shrink-0" />
           <input
             placeholder={searchPlaceholder}
@@ -64,7 +65,7 @@ export default function FilterToolbar({
           <label className="signet-filter-field">
             <span>Profile</span>
             <select
-              className="signet-select w-40"
+              className="signet-select w-full sm:w-40"
               value={statusFilter}
               onChange={(e) => onStatusChange(e.target.value)}
             >
@@ -81,7 +82,7 @@ export default function FilterToolbar({
           <label key={filter.id} className="signet-filter-field">
             <span>{filter.label}</span>
             <select
-              className={`signet-select ${filter.width || "w-44"}`}
+              className={`signet-select w-full ${filter.width || "sm:w-44"}`}
               value={filter.value}
               onChange={(e) => filter.onChange(e.target.value)}
             >
@@ -101,7 +102,7 @@ export default function FilterToolbar({
               <span>From</span>
               <input
                 type="date"
-                className="signet-input w-40"
+                className="signet-input w-full sm:w-40"
                 value={dateRange.from}
                 onChange={(e) => onDateChange({ ...dateRange, from: e.target.value })}
               />
@@ -110,7 +111,7 @@ export default function FilterToolbar({
               <span>To</span>
               <input
                 type="date"
-                className="signet-input w-40"
+                className="signet-input w-full sm:w-40"
                 value={dateRange.to}
                 min={dateRange.from || undefined}
                 onChange={(e) => onDateChange({ ...dateRange, to: e.target.value })}
@@ -123,6 +124,7 @@ export default function FilterToolbar({
           <p className="text-sm text-[rgb(var(--foreground)/55%)] ml-auto pb-1">{resultSummary}</p>
         )}
       </div>
+      {children}
     </div>
   );
 }

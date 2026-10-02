@@ -86,7 +86,7 @@ export default function Jobs() {
         cell: ({ row }) => {
           const job = row.original;
           return (
-            <div className="min-w-[220px]">
+            <div className="min-w-0">
               <button
                 type="button"
                 onClick={() => navigate(`/admin/jobs/${job.id}`)}

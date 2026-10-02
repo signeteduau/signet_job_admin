@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Briefcase } from "lucide-react";
 import DashboardWidget from "../ui/DashboardWidget";
 import EmptyState from "../ui/EmptyState";
@@ -6,6 +7,7 @@ import { CHART_COLORS } from "../../lib/chartTheme";
 import { fetchUniqueApplications } from "../../lib/firestore";
 
 export default function MostAppliedJobs() {
+  const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -17,12 +19,14 @@ export default function MostAppliedJobs() {
 
         apps.forEach((app) => {
           const title = app.title;
-          if (title) counts[title] = (counts[title] || 0) + 1;
+          if (!title) return;
+          if (!counts[title]) counts[title] = { title, count: 0, jobId: app.jobId || "" };
+          counts[title].count += 1;
+          if (app.jobId) counts[title].jobId = app.jobId;
         });
 
         setData(
-          Object.entries(counts)
-            .map(([title, count]) => ({ title, count }))
+          Object.values(counts)
             .sort((a, b) => b.count - a.count)
             .slice(0, 5)
         );
@@ -39,7 +43,7 @@ export default function MostAppliedJobs() {
   const max = data[0]?.count || 1;
 
   return (
-    <DashboardWidget title="Hot jobs" subtitle="Highest applicant volume">
+    <DashboardWidget title="Hot jobs" subtitle="Highest applicant volume" to="/admin/jobs">
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4, 5].map((i) => (
@@ -53,7 +57,12 @@ export default function MostAppliedJobs() {
           {data.map((item, i) => {
             const pct = Math.round((item.count / max) * 100);
             return (
-              <div key={item.title} className="signet-rank-row">
+              <button
+                key={item.title}
+                type="button"
+                className="signet-rank-row is-link"
+                onClick={() => navigate(item.jobId ? `/admin/jobs/${item.jobId}` : "/admin/jobs")}
+              >
                 <span className={`signet-rank-badge ${i === 0 ? "is-gold" : ""}`}>{i + 1}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -73,7 +82,7 @@ export default function MostAppliedJobs() {
                     />
                   </div>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>

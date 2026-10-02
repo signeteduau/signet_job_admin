@@ -1,7 +1,7 @@
 import { Eye, Pencil, Trash, MoreVertical } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
-export default function TableActions({ onView, onEdit, onDelete }) {
+export default function TableActions({ onView, onEdit, onDelete, extras = [] }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -15,6 +15,7 @@ export default function TableActions({ onView, onEdit, onDelete }) {
 
   const items = [
     onView && { label: "View", icon: Eye, action: onView },
+    ...extras.filter(Boolean),
     onEdit && { label: "Edit", icon: Pencil, action: onEdit },
     onDelete && { label: "Delete", icon: Trash, action: onDelete, danger: true },
   ].filter(Boolean);

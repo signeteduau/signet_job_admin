@@ -28,6 +28,10 @@ import TermsPage from "./pages/support-legal/TermsPage";
 import PrivacyPage from "./pages/support-legal/PrivacyPage";
 import AddFaq from "./pages/support-legal/AddFaq";
 import EditFaq from "./pages/support-legal/EditFaq";
+import Reviews from "./pages/Reviews";
+import AddReview from "./pages/AddReview";
+import EditReview from "./pages/EditReview";
+import CompanyNetwork from "./pages/CompanyNetwork";
 // ✅ Login Page
 import Login from "./pages/Login";
 
@@ -45,6 +49,7 @@ export default function App() {
       <Route path="/admin" element={<RequireAuth> <AdminLayout /> </RequireAuth> }>
         <Route index element={<Dashboard />} />
         <Route path="companies" element={<Companies />} />
+        <Route path="companies/network" element={<CompanyNetwork />} />
         <Route path="companies/:id" element={<CompanyDetail />} />
         <Route path="candidates" element={<Candidates />} />
         <Route path="candidates/:id" element={<CandidateDetail />} />
@@ -62,6 +67,9 @@ export default function App() {
         <Route path="/admin/faqs/:id/edit" element={<EditFaq />} />
         <Route path="/admin/terms" element={<TermsPage />} />
         <Route path="/admin/privacy" element={<PrivacyPage />} />
+        <Route path="reviews" element={<Reviews />} />
+        <Route path="reviews/new" element={<AddReview />} />
+        <Route path="reviews/:id/edit" element={<EditReview />} />
 
 
         {/* ✅ Remove leading /admin here */}

@@ -206,7 +206,7 @@ export default function BlogPosts() {
   };
 
   return (
-    <div className="px-8 py-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div>
@@ -223,7 +223,7 @@ export default function BlogPosts() {
         {/* MAIN FORM */}
         <form
           onSubmit={handleSubmit}
-          className="rounded-2xl border border-[rgb(var(--card-border))] bg-[rgb(var(--card))] p-6 shadow-sm space-y-5"
+          className="rounded-2xl border border-[rgb(var(--card-border))] bg-[rgb(var(--card))] p-4 sm:p-6 shadow-sm space-y-5"
         >
           {/* Title + Slug */}
           <div>

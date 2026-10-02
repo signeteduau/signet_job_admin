@@ -3,6 +3,7 @@ import {
   enrichApplicationsWithCandidates,
   fetchUniqueApplications,
 } from "../../lib/firestore";
+import { useNavigate } from "react-router-dom";
 import { Briefcase } from "lucide-react";
 import DashboardWidget from "../ui/DashboardWidget";
 import EmptyState from "../ui/EmptyState";
@@ -31,11 +32,14 @@ function toFeedRows(apps) {
     name: app.candidateName || "Candidate",
     job: app.title || "a role",
     company: app.companyName || "",
+    userId: app.userId || "",
+    jobId: app.jobId || "",
     time: timeAgo(app.appliedAt),
   }));
 }
 
 export default function ActivityFeed() {
+  const navigate = useNavigate();
   const [feed, setFeed] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -71,7 +75,7 @@ export default function ActivityFeed() {
   }, []);
 
   return (
-    <DashboardWidget title="Live activity" subtitle="Real-time application stream">
+    <DashboardWidget title="Live activity" subtitle="Real-time application stream" to="/admin/applications">
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
@@ -90,7 +94,16 @@ export default function ActivityFeed() {
       ) : (
         <div className="signet-timeline">
           {feed.map((item) => (
-            <div key={item.id} className="signet-timeline-item">
+            <button
+              key={item.id}
+              type="button"
+              className="signet-timeline-item is-link"
+              onClick={() => {
+                if (item.userId) navigate(`/admin/candidates/${item.userId}`);
+                else if (item.jobId) navigate(`/admin/jobs/${item.jobId}`);
+                else navigate("/admin/applications");
+              }}
+            >
               <div className="signet-timeline-rail">
                 <span className="signet-timeline-dot" />
               </div>
@@ -111,7 +124,7 @@ export default function ActivityFeed() {
                   <span className="signet-timeline-time shrink-0">{item.time}</span>
                 </div>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}

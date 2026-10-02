@@ -171,7 +171,7 @@ export default function UserRoles() {
         description={`${filteredUsers.length} users match your filters`}
       >
         <div className="signet-filter-bar !p-3 flex flex-wrap items-center gap-3">
-          <div className="signet-filter-search flex items-center gap-2 flex-1 min-w-[220px]">
+          <div className="signet-filter-search flex items-center gap-2 w-full min-w-0 flex-1">
             <Search size={16} className="opacity-50" />
             <input
               className="signet-input !border-none !shadow-none !bg-transparent !p-0"
@@ -181,7 +181,7 @@ export default function UserRoles() {
             />
           </div>
           <select
-            className="signet-select w-40"
+            className="signet-select w-full sm:w-40"
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
           >

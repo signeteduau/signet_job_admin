@@ -157,7 +157,7 @@ export default function EditBlog() {
   };
 
   return (
-    <div className="px-8 py-6 space-y-6">
+    <div className="space-y-6">
       {/* HEADER */}
       <div className="flex items-center justify-between gap-4">
         <div>
@@ -174,7 +174,7 @@ export default function EditBlog() {
         {/* MAIN FORM */}
         <form
           onSubmit={handleUpdate}
-          className="rounded-2xl border border-[rgb(var(--card-border))] bg-[rgb(var(--card))] p-6 shadow-sm space-y-5"
+          className="rounded-2xl border border-[rgb(var(--card-border))] bg-[rgb(var(--card))] p-4 sm:p-6 shadow-sm space-y-5"
         >
           {/* Title + Slug */}
           <div>

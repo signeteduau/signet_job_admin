@@ -10,9 +10,17 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
+import { Link } from "react-router-dom";
 import { SERIES, chartAxisStyle } from "../lib/chartTheme";
 import { ChartTooltipContent } from "../components/charts/ChartTooltipContent";
 import { toDate, dedupeApplicationDocs, fetchApplicationDocs } from "../lib/firestore";
+
+const SERIES_ROUTES = {
+  companies: "/admin/companies",
+  candidates: "/admin/candidates",
+  jobs: "/admin/jobs",
+  applications: "/admin/applications",
+};
 
 export default function ActivityChart() {
   const [data, setData] = useState([]);
@@ -84,10 +92,10 @@ export default function ActivityChart() {
         </div>
         <div className="signet-chart-legend">
           {Object.entries(SERIES).map(([key, cfg]) => (
-            <span key={key} className="signet-chart-legend-item">
+            <Link key={key} to={SERIES_ROUTES[key]} className="signet-chart-legend-item is-link">
               <span className="signet-chart-legend-dot" style={{ background: cfg.stroke }} />
               <span className="capitalize">{key}</span>
-            </span>
+            </Link>
           ))}
         </div>
       </div>

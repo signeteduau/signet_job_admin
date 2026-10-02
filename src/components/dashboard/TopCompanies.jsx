@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Building2 } from "lucide-react";
 import DashboardWidget from "../ui/DashboardWidget";
 import EmptyState from "../ui/EmptyState";
@@ -6,6 +7,7 @@ import { CHART_COLORS } from "../../lib/chartTheme";
 import { fetchUniqueApplications } from "../../lib/firestore";
 
 export default function TopCompanies() {
+  const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -16,13 +18,15 @@ export default function TopCompanies() {
         const counts = {};
 
         apps.forEach((app) => {
-          const company = app.companyName;
-          if (company) counts[company] = (counts[company] || 0) + 1;
+          const name = app.companyName;
+          if (!name) return;
+          if (!counts[name]) counts[name] = { name, count: 0, companyId: app.companyId || "" };
+          counts[name].count += 1;
+          if (app.companyId) counts[name].companyId = app.companyId;
         });
 
         setData(
-          Object.entries(counts)
-            .map(([name, count]) => ({ name, count }))
+          Object.values(counts)
             .sort((a, b) => b.count - a.count)
             .slice(0, 5)
         );
@@ -39,7 +43,7 @@ export default function TopCompanies() {
   const max = data[0]?.count || 1;
 
   return (
-    <DashboardWidget title="Top companies" subtitle="Most applications received">
+    <DashboardWidget title="Top companies" subtitle="Most applications received" to="/admin/companies">
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4, 5].map((i) => (
@@ -53,7 +57,14 @@ export default function TopCompanies() {
           {data.map((item, i) => {
             const pct = Math.round((item.count / max) * 100);
             return (
-              <div key={item.name} className="signet-rank-row">
+              <button
+                key={item.name}
+                type="button"
+                className="signet-rank-row is-link"
+                onClick={() =>
+                  navigate(item.companyId ? `/admin/companies/${item.companyId}` : "/admin/companies")
+                }
+              >
                 <span className={`signet-rank-badge ${i === 0 ? "is-gold" : ""}`}>{i + 1}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -73,7 +84,7 @@ export default function TopCompanies() {
                     />
                   </div>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>

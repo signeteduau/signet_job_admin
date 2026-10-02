@@ -1,7 +1,9 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { db } from "../firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
+import { Mail } from "lucide-react";
+import { toast } from "react-hot-toast";
 import {
   useReactTable,
   getCoreRowModel,
@@ -18,6 +20,13 @@ import PageHeader from "../components/ui/PageHeader";
 import StatusBadge from "../components/ui/StatusBadge";
 import FilterToolbar from "../components/ui/FilterToolbar";
 import DataTable from "../components/ui/DataTable";
+import { fetchCompanyConnections, roleForCompany } from "../lib/companyConnections";
+import {
+  canSendProfileReminder,
+  reminderStatusLabel,
+  requestProfileReminder,
+  requestProfileReminders,
+} from "../lib/profileReminders";
 
 function fmtDate(v) {
   if (!v) return "—";
@@ -53,19 +62,31 @@ export default function Companies() {
   const [industryFilter, setIndustryFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [sizeFilter, setSizeFilter] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
   const [dateRange, setDateRange] = useState({ from: "", to: "" });
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [reminding, setReminding] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     async function loadCompanies() {
-      const snap = await getDocs(
-        query(collection(db, "users"), where("userType", "==", "company"))
-      );
+      const [snap, connections] = await Promise.all([
+        getDocs(query(collection(db, "users"), where("userType", "==", "company"))),
+        fetchCompanyConnections().catch(() => []),
+      ]);
 
       const result = snap.docs
         .map((d) => {
           const x = d.data();
+          const network = roleForCompany(connections, d.id);
+          const roleLabel =
+            network.role === "head"
+              ? "Head"
+              : network.role === "sub"
+              ? "Sub"
+              : network.role === "both"
+              ? "Head + Sub"
+              : "Independent";
           return {
             id: d.id,
             companyName: x.companyName || "",
@@ -77,8 +98,14 @@ export default function Companies() {
             website: x.website || "",
             logoUrl: x.logoUrl || "",
             profileCompleted: !!x.profileCompleted,
+            lastProfileReminderAt: x.lastProfileReminderAt?.toDate?.() || null,
+            userType: "company",
             createdAt: x.createdAt?.toDate?.() || null,
             status: x.profileCompleted ? "Active" : "Incomplete",
+            networkRole: network.role,
+            roleLabel,
+            headName: network.head?.headName || "",
+            childCount: network.children.length,
           };
         })
         .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -135,6 +162,7 @@ export default function Companies() {
       }
 
       if (statusFilter && item.status !== statusFilter) return false;
+      if (roleFilter && item.networkRole !== roleFilter) return false;
       if (industryFilter && item.industry !== industryFilter) return false;
       if (sizeFilter && item.companySize !== sizeFilter) return false;
 
@@ -154,15 +182,72 @@ export default function Companies() {
 
       return true;
     });
-  }, [data, globalFilter, statusFilter, industryFilter, locationFilter, sizeFilter, dateRange]);
+  }, [data, globalFilter, statusFilter, roleFilter, industryFilter, locationFilter, sizeFilter, dateRange]);
 
   useEffect(() => {
     setPagination((p) => ({ ...p, pageIndex: 0 }));
-  }, [globalFilter, statusFilter, industryFilter, locationFilter, sizeFilter, dateRange]);
+  }, [globalFilter, statusFilter, roleFilter, industryFilter, locationFilter, sizeFilter, dateRange]);
+
+  const markReminded = useCallback((ids) => {
+    const now = new Date();
+    setData((rows) =>
+      rows.map((row) => (ids.includes(row.id) ? { ...row, lastProfileReminderAt: now } : row))
+    );
+  }, []);
+
+  const remindOne = useCallback(
+    async (user) => {
+      try {
+        await requestProfileReminder(user);
+        markReminded([user.id]);
+        toast.success(`Reminder queued for ${user.companyName || user.email}`);
+      } catch (err) {
+        toast.error(err.message || "Could not send reminder.");
+      }
+    },
+    [markReminded]
+  );
+
+  const incompleteTargets = useMemo(
+    () => filteredData.filter(canSendProfileReminder),
+    [filteredData]
+  );
+
+  const remindIncomplete = async () => {
+    if (!incompleteTargets.length) {
+      toast.error("No incomplete profiles are ready to remind.");
+      return;
+    }
+    if (
+      !window.confirm(
+        `Send profile completion emails to ${incompleteTargets.length} compan${
+          incompleteTargets.length === 1 ? "y" : "ies"
+        }?`
+      )
+    ) {
+      return;
+    }
+
+    setReminding(true);
+    try {
+      const results = await requestProfileReminders(incompleteTargets);
+      markReminded(results.sentIds);
+      if (results.sent) {
+        toast.success(`Queued ${results.sent} profile reminder${results.sent === 1 ? "" : "s"}`);
+      }
+      if (results.failed) toast.error(`${results.failed} reminder${results.failed === 1 ? "" : "s"} failed`);
+      if (!results.sent && !results.failed) toast.error("Those companies were already reminded recently.");
+    } catch {
+      toast.error("Could not send reminders.");
+    } finally {
+      setReminding(false);
+    }
+  };
 
   const hasActiveFilters =
     !!globalFilter ||
     !!statusFilter ||
+    !!roleFilter ||
     !!industryFilter ||
     !!locationFilter ||
     !!sizeFilter ||
@@ -172,6 +257,7 @@ export default function Companies() {
   const clearFilters = () => {
     setGlobalFilter("");
     setStatusFilter("");
+    setRoleFilter("");
     setIndustryFilter("");
     setLocationFilter("");
     setSizeFilter("");
@@ -224,9 +310,31 @@ export default function Companies() {
         cell: ({ cell }) => display(cell.getValue()),
       },
       {
+        accessorKey: "roleLabel",
+        header: "Network",
+        cell: ({ row }) => (
+          <span className={`signet-role-chip is-${row.original.networkRole}`}>
+            {row.original.roleLabel}
+            {row.original.networkRole === "head" && row.original.childCount
+              ? ` · ${row.original.childCount}`
+              : ""}
+            {row.original.networkRole === "sub" && row.original.headName
+              ? ` · ${row.original.headName}`
+              : ""}
+          </span>
+        ),
+      },
+      {
         accessorKey: "status",
         header: "Profile",
-        cell: ({ cell }) => <StatusBadge status={cell.getValue()} />,
+        cell: ({ row }) => (
+          <div className="signet-profile-status">
+            <StatusBadge status={row.original.status} />
+            {!row.original.profileCompleted && reminderStatusLabel(row.original) ? (
+              <span className="signet-reminder-meta">{reminderStatusLabel(row.original)}</span>
+            ) : null}
+          </div>
+        ),
       },
       {
         accessorKey: "createdAt",
@@ -237,12 +345,25 @@ export default function Companies() {
         id: "actions",
         header: "",
         cell: ({ row }) => (
-          <TableActions onView={() => navigate(`/admin/companies/${row.original.id}`)} />
+          <TableActions
+            onView={() => navigate(`/admin/companies/${row.original.id}`)}
+            extras={
+              canSendProfileReminder(row.original)
+                ? [
+                    {
+                      label: "Remind",
+                      icon: Mail,
+                      action: () => remindOne(row.original),
+                    },
+                  ]
+                : []
+            }
+          />
         ),
         enableSorting: false,
       },
     ],
-    [navigate]
+    [navigate, remindOne]
   );
 
   const table = useReactTable({
@@ -263,6 +384,7 @@ export default function Companies() {
     Industry: r.industry,
     Size: r.companySize,
     Location: r.companyLocation,
+    Network: r.roleLabel,
     Status: r.status,
     Registered: fmtDate(r.createdAt),
   }));
@@ -276,6 +398,21 @@ export default function Companies() {
           hasActiveFilters
             ? `${filteredData.length} of ${data.length} companies match your filters`
             : `${data.length} registered employers on Signet`
+        }
+        action={
+          incompleteTargets.length > 0 ? (
+            <button
+              type="button"
+              className="signet-btn-secondary"
+              onClick={remindIncomplete}
+              disabled={reminding}
+            >
+              <Mail size={15} />
+              {reminding
+                ? "Sending reminders…"
+                : `Remind ${incompleteTargets.length} incomplete`}
+            </button>
+          ) : null
         }
       />
 
@@ -291,6 +428,19 @@ export default function Companies() {
           { value: "Incomplete", label: "Incomplete" },
         ]}
         selectFilters={[
+          {
+            id: "network",
+            label: "Network",
+            value: roleFilter,
+            onChange: setRoleFilter,
+            options: [
+              { value: "head", label: "Head" },
+              { value: "sub", label: "Sub" },
+              { value: "both", label: "Head + Sub" },
+              { value: "independent", label: "Independent" },
+            ],
+            placeholder: "All roles",
+          },
           {
             id: "industry",
             label: "Industry",

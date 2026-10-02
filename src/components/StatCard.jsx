@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { ArrowUpRight, TrendingUp } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area } from "recharts";
 
-export default function StatCard({ label, value, previous = 0, trend = [], color, icon: Icon }) {
+export default function StatCard({ label, value, previous = 0, trend = [], color, icon: Icon, to }) {
   const [displayValue, setDisplayValue] = useState(0);
 
   useEffect(() => {
@@ -30,8 +31,11 @@ export default function StatCard({ label, value, previous = 0, trend = [], color
   const weekCount = previous || 0;
   const pct = value > 0 ? Math.round((weekCount / value) * 100) : 0;
 
+  const Card = to ? Link : "div";
+  const cardProps = to ? { to } : {};
+
   return (
-    <div className="signet-stat-card-v2">
+    <Card className={`signet-stat-card-v2${to ? " is-link" : ""}`} {...cardProps}>
       <div
         className="signet-stat-card-v2-accent"
         style={{ background: `linear-gradient(90deg, ${color}, ${color}88)` }}
@@ -85,6 +89,6 @@ export default function StatCard({ label, value, previous = 0, trend = [], color
           </span>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

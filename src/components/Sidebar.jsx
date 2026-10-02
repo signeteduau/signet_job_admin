@@ -16,12 +16,15 @@ import {
   Smartphone,
   LogOut,
   BookOpen,
+  Star,
   HelpCircle,
   FileText,
   ChevronDown,
   Settings,
   Scale,
   Shield,
+  GitBranch,
+  X,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { signOut } from "firebase/auth";
@@ -30,11 +33,18 @@ import SignetLogo from "./SignetLogo";
 
 const SIDEBAR_STORAGE_KEY = "sidebar";
 const SIDEBAR_VERSION_KEY = "sidebar-version";
-const SIDEBAR_VERSION = "4";
+const SIDEBAR_VERSION = "6";
 
 const primaryNav = [
   { name: "Dashboard", to: "/admin", icon: LayoutDashboard, end: true },
-  { name: "Companies", to: "/admin/companies", icon: Building2 },
+  {
+    name: "Companies",
+    icon: Building2,
+    children: [
+      { name: "All Companies", to: "/admin/companies", end: true },
+      { name: "Head & Sub", to: "/admin/companies/network", icon: GitBranch },
+    ],
+  },
   { name: "Candidates", to: "/admin/candidates", icon: Users },
   { name: "Jobs", to: "/admin/jobs", icon: Briefcase },
   { name: "Applications", to: "/admin/applications", icon: ClipboardList },
@@ -47,6 +57,14 @@ const contentNav = [
     children: [
       { name: "All Articles", to: "/admin/all-blogs" },
       { name: "Add Article", to: "/admin/add-blog" },
+    ],
+  },
+  {
+    name: "Reviews",
+    icon: Star,
+    children: [
+      { name: "All Reviews", to: "/admin/reviews" },
+      { name: "Add Review", to: "/admin/reviews/new" },
     ],
   },
   { name: "Notifications", to: "/admin/notifications", icon: Bell },
@@ -78,8 +96,21 @@ function readCollapsedPreference() {
     localStorage.setItem(SIDEBAR_STORAGE_KEY, "expanded");
     return false;
   }
-  if (window.innerWidth < 1024) return true;
   return localStorage.getItem(SIDEBAR_STORAGE_KEY) === "collapsed";
+}
+
+function useIsMobile(maxWidth = 1023) {
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.innerWidth <= maxWidth
+  );
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= maxWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [maxWidth]);
+
+  return isMobile;
 }
 
 function isChildActive(pathname, children) {
@@ -109,11 +140,13 @@ function SidebarTooltip({ label, children }) {
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ mobileOpen = false, onClose }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const isMobile = useIsMobile();
 
   const [collapsed, setCollapsed] = useState(readCollapsedPreference);
+  const railCollapsed = isMobile ? false : collapsed;
   const [openMenu, setOpenMenu] = useState(null);
   const [flyoutMenu, setFlyoutMenu] = useState(null);
 
@@ -127,7 +160,7 @@ export default function Sidebar() {
   );
 
   const activeParent = useMemo(() => {
-    for (const item of contentNav) {
+    for (const item of [...primaryNav, ...contentNav]) {
       if (item.children && isChildActive(pathname, item.children)) return item.name;
     }
     if (settingsActive) return settingsGroup.name;
@@ -141,20 +174,12 @@ export default function Sidebar() {
   }, [collapsed]);
 
   useEffect(() => {
-    if (!collapsed && activeParent) setOpenMenu(activeParent);
-    if (collapsed) {
+    if (!railCollapsed && activeParent) setOpenMenu(activeParent);
+    if (railCollapsed) {
       setOpenMenu(null);
       setFlyoutMenu(null);
     }
-  }, [collapsed, activeParent]);
-
-  useEffect(() => {
-    const onResize = () => {
-      if (window.innerWidth < 1024) setCollapsed(true);
-    };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
+  }, [railCollapsed, activeParent]);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -167,15 +192,19 @@ export default function Sidebar() {
   };
 
   const toggleSubmenu = (name) => {
-    if (collapsed) {
+    if (railCollapsed) {
       setFlyoutMenu((prev) => (prev === name ? null : name));
       return;
     }
     setOpenMenu((prev) => (prev === name ? null : name));
   };
 
+  const closeMobile = () => {
+    if (isMobile) onClose?.();
+  };
+
   const wrapCollapsed = (label, node, key) =>
-    collapsed ? (
+    railCollapsed ? (
       <SidebarTooltip key={key} label={label}>
         {node}
       </SidebarTooltip>
@@ -188,7 +217,8 @@ export default function Sidebar() {
       <NavLink
         to={item.to}
         end={item.end}
-        className={({ isActive }) => linkClass(isActive, collapsed)}
+        onClick={closeMobile}
+        className={({ isActive }) => linkClass(isActive, railCollapsed)}
       >
         <span className="signet-sidebar-icon-wrap">
           <item.icon size={18} strokeWidth={2} />
@@ -211,7 +241,11 @@ export default function Sidebar() {
       <NavLink
         key={child.to}
         to={child.to}
-        onClick={() => setFlyoutMenu(null)}
+        end={child.end}
+        onClick={() => {
+          setFlyoutMenu(null);
+          closeMobile();
+        }}
         className={({ isActive }) => `signet-submenu-link ${isActive ? "active" : ""}`}
       >
         {withIcons && child.icon && <child.icon size={14} className="shrink-0 opacity-60" />}
@@ -220,7 +254,7 @@ export default function Sidebar() {
     ));
 
   const renderSubmenu = (item) => {
-    const isOpen = collapsed ? flyoutMenu === item.name : openMenu === item.name;
+    const isOpen = railCollapsed ? flyoutMenu === item.name : openMenu === item.name;
     const isParentActive = isChildActive(pathname, item.children);
 
     const trigger = (
@@ -229,7 +263,7 @@ export default function Sidebar() {
         onClick={() => toggleSubmenu(item.name)}
         className={[
           "signet-sidebar-link w-full",
-          collapsed ? "signet-sidebar-link--collapsed" : "",
+          railCollapsed ? "signet-sidebar-link--collapsed" : "",
           isOpen || isParentActive ? "signet-sidebar-link--active signet-sidebar-link--open" : "",
         ].join(" ")}
         aria-expanded={isOpen}
@@ -238,13 +272,13 @@ export default function Sidebar() {
           <item.icon size={18} strokeWidth={2} />
         </span>
         <span className="signet-sidebar-label flex-1 text-left">{item.name}</span>
-        {!collapsed && (
+        {!railCollapsed && (
           <ChevronDown size={16} className={`signet-sidebar-chevron ${isOpen ? "is-open" : ""}`} />
         )}
       </button>
     );
 
-    const panel = collapsed ? (
+    const panel = railCollapsed ? (
       renderFlyoutPanel(item.name, renderSubmenuLinks(item.children), isOpen)
     ) : (
       <div className={`signet-sidebar-submenu ${isOpen ? "is-open" : ""}`}>
@@ -252,7 +286,7 @@ export default function Sidebar() {
       </div>
     );
 
-    if (collapsed) {
+    if (railCollapsed) {
       return (
         <div key={item.name} className="signet-sidebar-item">
           <SidebarTooltip label={item.name}>{trigger}</SidebarTooltip>
@@ -270,7 +304,7 @@ export default function Sidebar() {
   };
 
   const renderGroup = (group, isActive) => {
-    const isOpen = collapsed ? flyoutMenu === group.name : openMenu === group.name;
+    const isOpen = railCollapsed ? flyoutMenu === group.name : openMenu === group.name;
 
     const trigger = (
       <button
@@ -278,7 +312,7 @@ export default function Sidebar() {
         onClick={() => toggleSubmenu(group.name)}
         className={[
           "signet-sidebar-link w-full",
-          collapsed ? "signet-sidebar-link--collapsed" : "",
+          railCollapsed ? "signet-sidebar-link--collapsed" : "",
           isOpen || isActive ? "signet-sidebar-link--active signet-sidebar-link--open" : "",
         ].join(" ")}
         aria-expanded={isOpen}
@@ -287,13 +321,13 @@ export default function Sidebar() {
           <group.icon size={18} strokeWidth={2} />
         </span>
         <span className="signet-sidebar-label flex-1 text-left">{group.name}</span>
-        {!collapsed && (
+        {!railCollapsed && (
           <ChevronDown size={16} className={`signet-sidebar-chevron ${isOpen ? "is-open" : ""}`} />
         )}
       </button>
     );
 
-    const panel = collapsed ? (
+    const panel = railCollapsed ? (
       renderFlyoutPanel(group.name, renderSubmenuLinks(group.children, true), isOpen)
     ) : (
       <div className={`signet-sidebar-submenu ${isOpen ? "is-open" : ""}`}>
@@ -301,7 +335,7 @@ export default function Sidebar() {
       </div>
     );
 
-    if (collapsed) {
+    if (railCollapsed) {
       return (
         <div key={group.name} className="signet-sidebar-item">
           <SidebarTooltip label={group.name}>{trigger}</SidebarTooltip>
@@ -320,7 +354,7 @@ export default function Sidebar() {
 
   return (
     <>
-      {collapsed && flyoutMenu && (
+      {railCollapsed && flyoutMenu && (
         <button
           type="button"
           className="signet-sidebar-backdrop"
@@ -329,28 +363,43 @@ export default function Sidebar() {
         />
       )}
 
-      <aside className={`signet-sidebar ${collapsed ? "signet-sidebar--collapsed" : "signet-sidebar--expanded"}`}>
+      <aside
+        className={`signet-sidebar ${railCollapsed ? "signet-sidebar--collapsed" : "signet-sidebar--expanded"}${isMobile && mobileOpen ? " signet-sidebar--mobile-open" : ""}`}
+      >
         <div className="signet-sidebar-head">
-          <SignetLogo collapsed={collapsed} subtitle="Admin Panel" />
-          <button
-            type="button"
-            onClick={toggleCollapse}
-            className="signet-sidebar-toggle"
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-          </button>
+          <SignetLogo collapsed={railCollapsed} subtitle="Admin Panel" />
+          {isMobile ? (
+            <button
+              type="button"
+              onClick={() => onClose?.()}
+              className="signet-sidebar-toggle"
+              aria-label="Close navigation"
+            >
+              <X size={16} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={toggleCollapse}
+              className="signet-sidebar-toggle"
+              aria-label={railCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={railCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {railCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+            </button>
+          )}
         </div>
 
         <nav className="signet-sidebar-nav">
           <div className="signet-sidebar-block">
-            {!collapsed && <p className="signet-sidebar-block-label">Overview</p>}
-            {primaryNav.map((item) => renderNavLink(item))}
+            {!railCollapsed && <p className="signet-sidebar-block-label">Overview</p>}
+            {primaryNav.map((item) =>
+              item.children ? renderSubmenu(item) : renderNavLink(item)
+            )}
           </div>
 
           <div className="signet-sidebar-block">
-            {!collapsed ? (
+            {!railCollapsed ? (
               <p className="signet-sidebar-block-label">Content</p>
             ) : (
               <span className="signet-sidebar-divider" aria-hidden />
@@ -361,7 +410,7 @@ export default function Sidebar() {
           </div>
 
           <div className="signet-sidebar-block">
-            {!collapsed ? (
+            {!railCollapsed ? (
               <p className="signet-sidebar-block-label">Settings</p>
             ) : (
               <span className="signet-sidebar-divider" aria-hidden />
@@ -370,7 +419,7 @@ export default function Sidebar() {
           </div>
 
           <div className="signet-sidebar-block">
-            {!collapsed ? (
+            {!railCollapsed ? (
               <p className="signet-sidebar-block-label">Support & Legal</p>
             ) : (
               <span className="signet-sidebar-divider" aria-hidden />
@@ -380,7 +429,7 @@ export default function Sidebar() {
         </nav>
 
         <div className="signet-sidebar-foot">
-          {collapsed ? (
+          {railCollapsed ? (
             <SidebarTooltip label="Logout">
               <button
                 type="button"

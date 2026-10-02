@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
+import { toast } from "react-hot-toast";
 import { db } from "../firebase";
 import StatusBadge from "../components/ui/StatusBadge";
 import {
@@ -15,6 +16,11 @@ import {
   ClipboardList,
   Download,
 } from "lucide-react";
+import {
+  canSendProfileReminder,
+  reminderStatusLabel,
+  requestProfileReminder,
+} from "../lib/profileReminders";
 
 function asText(value, fallback = "—") {
   if (value == null || value === "") return fallback;
@@ -101,6 +107,7 @@ export default function CandidateDetail() {
   const [candidate, setCandidate] = useState(null);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reminding, setReminding] = useState(false);
 
   useEffect(() => {
     const fetchCandidate = async () => {
@@ -200,7 +207,32 @@ export default function CandidateDetail() {
     : [];
   const about = asText(candidate.aboutMe || candidate.about, "");
   const profileComplete = !!candidate.profileCompleted;
+  const reminderUser = {
+    id: candidate.id,
+    email: candidate.email,
+    fullName: candidate.fullName || candidate.name,
+    profileCompleted: profileComplete,
+    lastProfileReminderAt: candidate.lastProfileReminderAt,
+    userType: "candidate",
+  };
+  const canRemind = canSendProfileReminder(reminderUser);
+  const reminderLabel = reminderStatusLabel(reminderUser);
   const emailHref = email !== "—" ? `mailto:${email}` : null;
+
+  const sendReminder = async () => {
+    setReminding(true);
+    try {
+      await requestProfileReminder(reminderUser);
+      setCandidate((current) =>
+        current ? { ...current, lastProfileReminderAt: new Date() } : current
+      );
+      toast.success(`Reminder queued for ${name}`);
+    } catch (err) {
+      toast.error(err.message || "Could not send reminder.");
+    } finally {
+      setReminding(false);
+    }
+  };
   const phoneHref = phone !== "—" ? `tel:${phone.replace(/\s+/g, "")}` : null;
   const resumeName = asText(
     candidate.resumeFileName || candidate.resumeFile || "Resume",
@@ -219,6 +251,17 @@ export default function CandidateDetail() {
         </button>
 
         <div className="signet-cd-toolbar-actions">
+          {!profileComplete && (
+            <button
+              type="button"
+              className="signet-btn-secondary"
+              onClick={sendReminder}
+              disabled={!canRemind || reminding}
+            >
+              <Mail size={15} />
+              {reminding ? "Sending…" : canRemind ? "Send profile reminder" : "Reminded recently"}
+            </button>
+          )}
           {emailHref && (
             <a href={emailHref} className="signet-btn-secondary">
               <Mail size={15} /> Email
@@ -260,6 +303,7 @@ export default function CandidateDetail() {
             <p className="signet-cd-meta">
               Joined {formatDate(candidate.createdAt)}
               {candidate.updatedAt ? ` · Updated ${formatDate(candidate.updatedAt)}` : ""}
+              {!profileComplete && reminderLabel ? ` · ${reminderLabel}` : ""}
             </p>
           </div>
         </div>
@@ -270,6 +314,16 @@ export default function CandidateDetail() {
           <Fact icon={MapPin} label="Location" value={location} />
           <Fact icon={Briefcase} label="Experience" value={experience} />
         </div>
+        {!profileComplete && (
+          <p className="signet-reminder-banner">
+            This candidate has not completed their profile.
+            {canRemind
+              ? " Send a reminder so they can finish setup and apply for jobs."
+              : reminderLabel
+                ? ` ${reminderLabel}.`
+                : ""}
+          </p>
+        )}
       </section>
 
       <section className="signet-cd-card">

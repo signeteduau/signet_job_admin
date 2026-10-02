@@ -66,11 +66,11 @@ export default function AllBlogs() {
       </div>
 
       <div className="signet-filter-bar flex gap-4 items-center">
-        <div className="flex items-center gap-2 px-3 py-2 border border-[rgb(var(--card-border))] rounded-lg bg-[rgb(var(--background))] w-72">
+        <div className="flex w-full max-w-md items-center gap-2 px-3 py-2 border border-[rgb(var(--card-border))] rounded-lg bg-[rgb(var(--background))]">
           <Search size={16} />
           <input
             placeholder="Search articles..."
-            className="bg-transparent outline-none w-full text-sm"
+            className="bg-transparent outline-none w-full min-w-0 text-sm"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />

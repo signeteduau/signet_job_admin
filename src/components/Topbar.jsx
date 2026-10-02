@@ -1,6 +1,6 @@
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
-import { Bell, Sun, Moon, LogOut, User, ChevronDown } from "lucide-react";
+import { Bell, Sun, Moon, LogOut, User, ChevronDown, Menu, X } from "lucide-react";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -24,7 +24,7 @@ function displayName(user) {
   return "Admin";
 }
 
-export default function Topbar() {
+export default function Topbar({ navOpen = false, onMenuClick }) {
   const { mode, toggleTheme } = useTheme();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -37,6 +37,7 @@ export default function Topbar() {
   const titles = {
     "/admin": "Dashboard",
     "/admin/companies": "Companies",
+    "/admin/companies/network": "Head & Sub companies",
     "/admin/candidates": "Candidates",
     "/admin/jobs": "Jobs",
     "/admin/jobs/new": "Post training role",
@@ -44,6 +45,8 @@ export default function Topbar() {
     "/admin/all-blogs": "Articles",
     "/admin/add-blog": "Add Article",
     "/admin/faqs": "FAQs",
+    "/admin/reviews": "Reviews",
+    "/admin/reviews/new": "Add review",
     "/admin/settings/profile": "Profile",
     "/admin/settings/password": "Change Password",
     "/admin/settings/account": "Account Security",
@@ -61,6 +64,8 @@ export default function Topbar() {
     titles[pathname] ||
     (pathname.startsWith("/admin/candidates/")
       ? "Candidate details"
+      : pathname === "/admin/companies/network"
+      ? "Head & Sub companies"
       : pathname.startsWith("/admin/companies/")
       ? "Company details"
       : pathname.startsWith("/admin/jobs/")
@@ -69,6 +74,8 @@ export default function Topbar() {
       ? "Edit article"
       : pathname.startsWith("/admin/all-blogs/")
       ? "Article details"
+      : pathname.startsWith("/admin/reviews/")
+      ? "Edit review"
       : "Signet Admin");
 
   const [showNotif, setShowNotif] = useState(false);
@@ -108,15 +115,26 @@ export default function Topbar() {
   const name = displayName(user);
 
   return (
-    <header className="signet-topbar relative z-[2] h-16 flex items-center justify-between px-6 md:px-8">
-      <div>
-        <p className="signet-eyebrow hidden sm:block">Admin Console</p>
-        <h1 className="text-lg md:text-xl font-extrabold tracking-tight text-[rgb(var(--foreground))]">
-          {pageTitle}
-        </h1>
+    <header className="signet-topbar relative z-[2] h-16 flex items-center justify-between gap-3 px-4 sm:px-6 md:px-8">
+      <div className="flex min-w-0 items-center gap-3">
+        <button
+          type="button"
+          className="signet-menu-btn"
+          onClick={onMenuClick}
+          aria-label={navOpen ? "Close navigation" : "Open navigation"}
+          aria-expanded={navOpen}
+        >
+          {navOpen ? <X size={18} /> : <Menu size={18} />}
+        </button>
+        <div className="min-w-0">
+          <p className="signet-eyebrow hidden sm:block">Admin Console</p>
+          <h1 className="truncate text-base sm:text-lg md:text-xl font-extrabold tracking-tight text-[rgb(var(--foreground))]">
+            {pageTitle}
+          </h1>
+        </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         <button
           onClick={toggleTheme}
           className="signet-icon-btn"

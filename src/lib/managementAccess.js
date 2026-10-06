@@ -1,6 +1,7 @@
 import { showConnectToAdminToast } from "../components/ConnectToAdminToast";
 
 export const CONNECT_TO_ADMIN = "Connect to admin";
+export const MANAGEMENT_DEFAULT_PASSWORD = "SignetHub@2026";
 
 export const MANAGEMENT_EMAILS = [
   "pushpinder@signet.edu.au",

@@ -7,26 +7,19 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import useNotifications from "../hooks/useNotifications";
 
-function userInitials(user) {
-  const name = user?.displayName?.trim();
-  if (name) {
-    const parts = name.split(/\s+/).filter(Boolean);
+function userInitials(name, email) {
+  const trimmed = String(name || "").trim();
+  if (trimmed) {
+    const parts = trimmed.split(/\s+/).filter(Boolean);
     if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
     return parts[0].slice(0, 2).toUpperCase();
   }
-  const email = user?.email || "";
   return email ? email.charAt(0).toUpperCase() : "A";
-}
-
-function displayName(user) {
-  if (user?.displayName?.trim()) return user.displayName.trim();
-  if (user?.email) return user.email.split("@")[0];
-  return "Admin";
 }
 
 export default function Topbar({ navOpen = false, onMenuClick }) {
   const { mode, toggleTheme } = useTheme();
-  const { user, isViewer } = useAuth();
+  const { user, accountName, isViewer } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const uid = auth.currentUser?.uid || null;
@@ -111,8 +104,8 @@ export default function Topbar({ navOpen = false, onMenuClick }) {
     navigate("/login", { replace: true });
   };
 
-  const initials = userInitials(user);
-  const name = displayName(user);
+  const initials = userInitials(accountName, user?.email);
+  const name = accountName;
 
   return (
     <header data-viewer-ok className="signet-topbar relative z-[2] h-16 flex items-center justify-between gap-3 px-4 sm:px-6 md:px-8">

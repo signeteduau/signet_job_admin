@@ -1524,6 +1524,32 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   width: 100%; background: rgb(var(--background) / 0.8); border: 1px solid rgb(var(--card-border));
   color: rgb(var(--foreground)); border-radius: 14px; padding: 10px 14px; font-size: 14px; outline: none;
 }
+.signet-password-field {
+  position: relative;
+}
+.signet-password-field .signet-input {
+  padding-right: 44px;
+}
+.signet-password-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: rgb(var(--foreground) / 0.5);
+  cursor: pointer;
+}
+.signet-password-toggle:hover {
+  color: #004CF0;
+  background: rgba(0, 76, 240, 0.08);
+}
 .signet-input:focus { border-color: rgba(0, 76, 240, 0.4); box-shadow: 0 0 0 4px rgba(0, 76, 240, 0.1); }
 .signet-select {
   appearance: none; background: rgb(var(--background) / 0.8); border: 1px solid rgb(var(--card-border));

@@ -252,7 +252,7 @@ export default function Login() {
 
           <div className="signet-auth-footer">
             <ShieldCheck size={14} />
-            <span>Admin-only access · Encrypted session</span>
+            <span>Encrypted session</span>
           </div>
         </div>
       </div>

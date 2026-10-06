@@ -1,8 +1,17 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, updateProfile } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import { isManagementEmail } from "../lib/managementAccess";
+
+function accountNameFrom(user, profile) {
+  return (
+    String(profile?.fullName || profile?.name || "").trim() ||
+    String(user?.displayName || "").trim() ||
+    String(user?.email || "").split("@")[0] ||
+    "Admin"
+  );
+}
 
 export const AuthContext = createContext();
 
@@ -70,11 +79,28 @@ export function AuthProvider({ children }) {
     return () => unsub();
   }, []);
 
+  const updateAccountName = async (fullName) => {
+    const current = auth.currentUser;
+    if (!current) throw new Error("Not signed in");
+    const next = String(fullName || "").trim();
+    await setDoc(doc(db, "users", current.uid), { fullName: next }, { merge: true });
+    await updateProfile(current, { displayName: next });
+    setProfile((prev) => ({ ...(prev || {}), fullName: next, name: next }));
+  };
+
   const value = useMemo(() => {
     const isViewer = isManagementEmail(user?.email);
     const canWrite = Boolean(user) && !isViewer;
     const canAccessAdmin = Boolean(user) && (isViewer || profile?.userType === "admin");
-    return { user, profile, isViewer, canWrite, canAccessAdmin };
+    return {
+      user,
+      profile,
+      accountName: accountNameFrom(user, profile),
+      updateAccountName,
+      isViewer,
+      canWrite,
+      canAccessAdmin,
+    };
   }, [user, profile]);
 
   if (user === undefined) {

@@ -22,6 +22,8 @@ import { fetchBlogCategories, firestoreErrorMessage } from "../lib/blogCategorie
 import { toDate } from "../lib/firestore";
 import RichEditor from "../components/RichEditor";
 import FeaturedImageField from "../components/FeaturedImageField";
+import { useAuth } from "../context/AuthContext";
+import { showConnectToAdmin } from "../lib/managementAccess";
 
 // slug generator (same as Add Blog)
 const makeSlug = (str) =>
@@ -35,6 +37,7 @@ const makeSlug = (str) =>
 export default function EditBlog() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { canWrite } = useAuth();
 
   // MAIN form states
   const [title, setTitle] = useState("");
@@ -120,6 +123,10 @@ export default function EditBlog() {
   // Update submit
   const handleUpdate = async (e) => {
     e.preventDefault();
+    if (!canWrite) {
+      showConnectToAdmin();
+      return;
+    }
 
     if (!title.trim()) return toast.error("Title required");
     if (!content.trim()) return toast.error("Content required");

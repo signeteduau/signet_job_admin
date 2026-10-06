@@ -8,6 +8,8 @@ import PageHeader from "../../components/ui/PageHeader";
 import PageShell from "../../components/ui/PageShell";
 import SettingsPanel from "../../components/ui/SettingsPanel";
 import FormField from "../../components/ui/FormField";
+import { useAuth } from "../../context/AuthContext";
+import { blockIfViewer, viewerInputProps } from "../../lib/managementAccess";
 
 function stringToHSL(str) {
   let hash = 0;
@@ -16,6 +18,7 @@ function stringToHSL(str) {
 }
 
 export default function ProfileSettings() {
+  const { canWrite } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [saving, setSaving] = useState(false);
@@ -38,6 +41,7 @@ export default function ProfileSettings() {
   }, []);
 
   const saveChanges = async () => {
+    if (blockIfViewer(canWrite)) return;
     const user = auth.currentUser;
     if (!user) return;
 
@@ -90,8 +94,12 @@ export default function ProfileSettings() {
             type="text"
             className="signet-input"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              if (blockIfViewer(canWrite)) return;
+              setName(e.target.value);
+            }}
             placeholder="Your full name"
+            {...viewerInputProps(canWrite)}
           />
         </FormField>
 
@@ -99,7 +107,7 @@ export default function ProfileSettings() {
           <input type="email" className="signet-input" value={email} disabled />
         </FormField>
 
-        <button type="button" onClick={saveChanges} disabled={saving} className="signet-btn">
+        <button type="button" data-viewer-action onClick={saveChanges} disabled={saving} className="signet-btn">
           {saving ? "Saving…" : "Save changes"}
         </button>
       </SettingsPanel>

@@ -1,8 +1,17 @@
-import { useAuth } from "../context/AuthContext";
+import { useEffect } from "react";
 import { Navigate } from "react-router-dom";
+import { signOut } from "firebase/auth";
+import { useAuth } from "../context/AuthContext";
+import { auth } from "../firebase";
 
 export default function RequireAuth({ children }) {
-  const { user } = useAuth();
+  const { user, canAccessAdmin } = useAuth();
+
+  useEffect(() => {
+    if (user && !canAccessAdmin) {
+      signOut(auth);
+    }
+  }, [user, canAccessAdmin]);
 
   if (user === undefined) {
     return (
@@ -12,5 +21,9 @@ export default function RequireAuth({ children }) {
     );
   }
 
-  return user ? children : <Navigate to="/login" replace />;
+  if (!user || !canAccessAdmin) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
 }

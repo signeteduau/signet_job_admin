@@ -16,6 +16,8 @@ import {
   getCoreRowModel,
   getPaginationRowModel,
 } from "@tanstack/react-table";
+import { useAuth } from "../../context/AuthContext";
+import { blockIfViewer } from "../../lib/managementAccess";
 
 const ROLE_LABELS = {
   admin: "Admin",
@@ -25,6 +27,7 @@ const ROLE_LABELS = {
 
 export default function UserRoles() {
   const navigate = useNavigate();
+  const { canWrite } = useAuth();
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
@@ -64,6 +67,7 @@ export default function UserRoles() {
   }, [search, roleFilter]);
 
   const updateRole = async (id, newRole, oldRole) => {
+    if (blockIfViewer(canWrite)) return;
     if (newRole === oldRole) return;
     if (!window.confirm(`Change role from "${oldRole}" to "${newRole}"?`)) return;
 
@@ -118,6 +122,7 @@ export default function UserRoles() {
           <div className="flex items-center gap-3">
             <select
               className="signet-select w-36"
+              data-viewer-action
               value={row.original.userType || "candidate"}
               onChange={(e) => updateRole(row.original.id, e.target.value, row.original.userType)}
             >
@@ -130,7 +135,7 @@ export default function UserRoles() {
         ),
       },
     ],
-    [navigate]
+    [navigate, canWrite]
   );
 
   const table = useReactTable({

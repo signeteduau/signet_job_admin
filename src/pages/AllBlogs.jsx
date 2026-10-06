@@ -6,6 +6,8 @@ import { toast } from "react-hot-toast";
 import { Search, Pencil, Trash2, Star } from "lucide-react";
 import { toDate } from "../lib/firestore";
 import { articleCategoryLabel } from "../lib/articles";
+import { useAuth } from "../context/AuthContext";
+import { showConnectToAdmin } from "../lib/managementAccess";
 
 function isInteractiveTarget(target) {
   return Boolean(
@@ -17,6 +19,7 @@ export default function AllBlogs() {
   const [articles, setArticles] = useState([]);
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
+  const { canWrite } = useAuth();
 
   useEffect(() => {
     async function load() {
@@ -46,6 +49,10 @@ export default function AllBlogs() {
   }, [articles, search]);
 
   const deleteArticle = async (id) => {
+    if (!canWrite) {
+      showConnectToAdmin();
+      return;
+    }
     if (!window.confirm("Delete this article?")) return;
     await deleteDoc(doc(db, "articles", id));
     setArticles((prev) => prev.filter((a) => a.id !== id));
@@ -126,12 +133,32 @@ export default function AllBlogs() {
                 </td>
                 <td className="align-top">
                   <div className="flex items-center gap-3">
-                    <button className="text-[#004CF0] hover:opacity-80" onClick={() => navigate(`/admin/all-blogs/edit/${a.id}`)}>
+                    <button
+                      className="text-[#004CF0] hover:opacity-80"
+                      onClick={() => navigate(`/admin/all-blogs/edit/${a.id}`)}
+                      title="Edit"
+                    >
                       <Pencil size={16} />
                     </button>
-                    <button className="text-red-500 hover:opacity-80" onClick={() => deleteArticle(a.id)}>
-                      <Trash2 size={16} />
-                    </button>
+                    {canWrite ? (
+                      <button
+                        className="text-red-500 hover:opacity-80"
+                        onClick={() => deleteArticle(a.id)}
+                        title="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="text-red-500/40"
+                        data-viewer-action
+                        onClick={showConnectToAdmin}
+                        title="Connect to admin"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

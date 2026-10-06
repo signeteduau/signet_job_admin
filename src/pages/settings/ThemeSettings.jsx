@@ -6,6 +6,8 @@ import PageHeader from "../../components/ui/PageHeader";
 import PageShell from "../../components/ui/PageShell";
 import SettingsPanel from "../../components/ui/SettingsPanel";
 import FormField from "../../components/ui/FormField";
+import { useAuth } from "../../context/AuthContext";
+import { blockIfViewer } from "../../lib/managementAccess";
 
 const DEFAULT_COLOR = "#004CF0";
 
@@ -28,6 +30,7 @@ function hexToRgb(hex) {
 }
 
 export default function ThemeSettings() {
+  const { canWrite } = useAuth();
   const [color, setColor] = useState(() => localStorage.getItem("app-color") || DEFAULT_COLOR);
 
   useEffect(() => {
@@ -36,11 +39,13 @@ export default function ThemeSettings() {
   }, [color]);
 
   const applyColor = (next) => {
+    if (blockIfViewer(canWrite)) return;
     setColor(next);
     toast.success("Theme color updated");
   };
 
   const resetTheme = () => {
+    if (blockIfViewer(canWrite)) return;
     setColor(DEFAULT_COLOR);
     toast.success("Theme reset to Signet default");
   };
@@ -64,6 +69,7 @@ export default function ThemeSettings() {
               <button
                 key={swatch.value}
                 type="button"
+                data-viewer-action
                 title={swatch.label}
                 onClick={() => applyColor(swatch.value)}
                 className={`signet-theme-swatch ${color === swatch.value ? "is-active" : ""}`}
@@ -81,6 +87,7 @@ export default function ThemeSettings() {
             >
               <input
                 type="color"
+                data-viewer-action
                 value={color}
                 onChange={(e) => applyColor(e.target.value)}
                 className="absolute inset-0 opacity-0 cursor-pointer"
@@ -89,7 +96,7 @@ export default function ThemeSettings() {
             <code className="text-sm font-semibold px-3 py-2 rounded-xl bg-[rgb(var(--background)/70%)] border border-[rgb(var(--card-border))]">
               {color.toUpperCase()}
             </code>
-            <button type="button" onClick={resetTheme} className="signet-btn-secondary">
+            <button type="button" data-viewer-action onClick={resetTheme} className="signet-btn-secondary">
               <RotateCcw size={16} />
               Reset to default
             </button>

@@ -10,8 +10,11 @@ import PageShell from "../../components/ui/PageShell";
 import SettingsPanel from "../../components/ui/SettingsPanel";
 import EmptyState from "../../components/ui/EmptyState";
 import StatusBadge from "../../components/ui/StatusBadge";
+import { useAuth } from "../../context/AuthContext";
+import { blockIfViewer } from "../../lib/managementAccess";
 
 export default function AccountSettings() {
+  const { canWrite } = useAuth();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,6 +35,7 @@ export default function AccountSettings() {
   }
 
   async function logoutDevice(sessionId) {
+    if (blockIfViewer(canWrite)) return;
     const user = auth.currentUser;
     await deleteDoc(doc(db, "users", user.uid, "sessions", sessionId));
     toast.success("Device logged out");
@@ -102,6 +106,7 @@ export default function AccountSettings() {
                     {!isCurrent && (
                       <button
                         type="button"
+                        data-viewer-action
                         onClick={() => logoutDevice(s.sessionId)}
                         className="signet-btn-danger"
                       >

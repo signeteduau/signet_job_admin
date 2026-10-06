@@ -25,6 +25,8 @@ import {
 import RichEditor from "../components/RichEditor";
 import FeaturedImageField from "../components/FeaturedImageField";
 import { articleCategoryPayload } from "../lib/articles";
+import { useAuth } from "../context/AuthContext";
+import { showConnectToAdmin } from "../lib/managementAccess";
 // simple slug generator
 const makeSlug = (str) =>
   str
@@ -35,6 +37,7 @@ const makeSlug = (str) =>
     .replace(/-+/g, "-");
 
 export default function BlogPosts() {
+  const { canWrite } = useAuth();
   // Blog form state
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -84,6 +87,10 @@ export default function BlogPosts() {
 
   // Add category
   const handleAddCategory = async () => {
+    if (!canWrite) {
+      showConnectToAdmin();
+      return;
+    }
     const name = catName.trim();
     if (!name) return toast.error("Category name is required");
 
@@ -106,12 +113,20 @@ export default function BlogPosts() {
 
   // Start edit category
   const startEditCategory = (cat) => {
+    if (!canWrite) {
+      showConnectToAdmin();
+      return;
+    }
     setEditingCatId(cat.id);
     setEditingCatName(cat.name || "");
   };
 
   // Save edited category
   const saveCategoryEdit = async () => {
+    if (!canWrite) {
+      showConnectToAdmin();
+      return;
+    }
     const name = editingCatName.trim();
     if (!name || !editingCatId) {
       setEditingCatId(null);
@@ -138,6 +153,10 @@ export default function BlogPosts() {
 
   // Delete category
   const deleteCategory = async (id) => {
+    if (!canWrite) {
+      showConnectToAdmin();
+      return;
+    }
     if (!window.confirm("Delete this category?")) return;
 
     try {
@@ -154,6 +173,10 @@ export default function BlogPosts() {
   // Submit blog post
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canWrite) {
+      showConnectToAdmin();
+      return;
+    }
     if (!title.trim()) return toast.error("Title is required");
     if (!content.trim()) return toast.error("Content is required");
 
@@ -405,10 +428,27 @@ export default function BlogPosts() {
               placeholder="New category name"
               className="flex-1 px-3 py-2 rounded-lg border border-[rgb(var(--card-border))] bg-[rgb(var(--background))] text-sm focus:ring-2 focus:ring-[rgb(var(--purple))] outline-none"
               value={catName}
-              onChange={(e) => setCatName(e.target.value)}
+              readOnly={!canWrite}
+              onChange={(e) => {
+                if (!canWrite) {
+                  showConnectToAdmin();
+                  return;
+                }
+                setCatName(e.target.value);
+              }}
+              onFocus={() => {
+                if (!canWrite) showConnectToAdmin();
+              }}
+              onKeyDown={(e) => {
+                if (!canWrite) {
+                  e.preventDefault();
+                  showConnectToAdmin();
+                }
+              }}
             />
             <button
               type="button"
+              data-viewer-action
               onClick={handleAddCategory}
               className="btn-primary !px-3 !py-2 text-xs gap-1"
             >
@@ -458,6 +498,7 @@ export default function BlogPosts() {
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
+                    data-viewer-action
                     onClick={() => startEditCategory(cat)}
                     className="p-1 rounded-md hover:bg-[rgb(var(--foreground))/8%]"
                     title="Edit"
@@ -466,6 +507,7 @@ export default function BlogPosts() {
                   </button>
                   <button
                     type="button"
+                    data-viewer-action
                     onClick={() => deleteCategory(cat.id)}
                     className="p-1 rounded-md hover:bg-red-500/10 text-red-500"
                     title="Delete"

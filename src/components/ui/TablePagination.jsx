@@ -8,7 +8,7 @@ export default function TablePagination({ table }) {
   if (total === 0) return null;
 
   return (
-    <div className="signet-table-footer">
+    <div className="signet-table-footer" data-viewer-ok>
       <p className="text-sm text-[rgb(var(--foreground)/55%)]">
         Showing {table.getRowModel().rows.length} of {total} rows
       </p>

@@ -8,14 +8,19 @@ import PageHeader from "../../components/ui/PageHeader";
 import PageShell from "../../components/ui/PageShell";
 import SettingsPanel from "../../components/ui/SettingsPanel";
 import FormField from "../../components/ui/FormField";
+import { useAuth } from "../../context/AuthContext";
+import { blockIfViewer, viewerInputProps } from "../../lib/managementAccess";
 
 export default function ChangePassword() {
+  const { canWrite } = useAuth();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const lock = viewerInputProps(canWrite);
 
   const handleChangePassword = async () => {
+    if (blockIfViewer(canWrite)) return;
     if (!currentPassword || !newPassword || !confirmPassword) {
       toast.error("Please fill all fields");
       return;
@@ -66,8 +71,12 @@ export default function ChangePassword() {
             type="password"
             className="signet-input"
             value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
+            onChange={(e) => {
+              if (blockIfViewer(canWrite)) return;
+              setCurrentPassword(e.target.value);
+            }}
             autoComplete="current-password"
+            {...lock}
           />
         </FormField>
 
@@ -76,8 +85,12 @@ export default function ChangePassword() {
             type="password"
             className="signet-input"
             value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
+            onChange={(e) => {
+              if (blockIfViewer(canWrite)) return;
+              setNewPassword(e.target.value);
+            }}
             autoComplete="new-password"
+            {...lock}
           />
         </FormField>
 
@@ -86,12 +99,16 @@ export default function ChangePassword() {
             type="password"
             className="signet-input"
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            onChange={(e) => {
+              if (blockIfViewer(canWrite)) return;
+              setConfirmPassword(e.target.value);
+            }}
             autoComplete="new-password"
+            {...lock}
           />
         </FormField>
 
-        <button type="button" disabled={loading} onClick={handleChangePassword} className="signet-btn">
+        <button type="button" data-viewer-action disabled={loading} onClick={handleChangePassword} className="signet-btn">
           {loading ? "Updating…" : "Update password"}
         </button>
       </SettingsPanel>

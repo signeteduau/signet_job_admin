@@ -26,6 +26,7 @@ export default function TableActions({ onView, onEdit, onDelete, extras = [] }) 
     <div className="relative" ref={ref} data-no-row-click>
       <button
         type="button"
+        data-viewer-ok
         onClick={(e) => {
           e.stopPropagation();
           setOpen(!open);
@@ -41,6 +42,8 @@ export default function TableActions({ onView, onEdit, onDelete, extras = [] }) 
           {items.map(({ label, icon: Icon, action, danger }) => (
             <button
               key={label}
+              data-viewer-ok={label === "View" ? true : undefined}
+              data-viewer-action={label !== "View" ? true : undefined}
               onClick={() => { setOpen(false); action(); }}
               className={`signet-dropdown-item ${danger ? "signet-dropdown-item-danger" : ""}`}
             >

@@ -16,6 +16,8 @@ import {
   fetchMobileAppConfig,
   saveMobileAppConfig,
 } from "../../lib/appConfig";
+import { useAuth } from "../../context/AuthContext";
+import { blockIfViewer, viewerInputProps } from "../../lib/managementAccess";
 
 function ForceUpdatePreview({ form, active }) {
   const requiredLabel =
@@ -55,9 +57,11 @@ function ForceUpdatePreview({ form, active }) {
 }
 
 export default function ForceUpdateSettings() {
+  const { canWrite } = useAuth();
   const [form, setForm] = useState(DEFAULT_MOBILE_APP_CONFIG);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const lock = viewerInputProps(canWrite);
 
   useEffect(() => {
     let mounted = true;
@@ -78,17 +82,20 @@ export default function ForceUpdateSettings() {
   }, []);
 
   const set = (key) => (e) => {
+    if (blockIfViewer(canWrite)) return;
     const value =
       e.target.type === "checkbox" ? e.target.checked : e.target.value;
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
   const resetDefaults = () => {
+    if (blockIfViewer(canWrite)) return;
     setForm(DEFAULT_MOBILE_APP_CONFIG);
     toast.success("Reset to defaults — save to apply");
   };
 
   const save = async () => {
+    if (blockIfViewer(canWrite)) return;
     try {
       setSaving(true);
       const saved = await saveMobileAppConfig(
@@ -167,7 +174,7 @@ export default function ForceUpdateSettings() {
 
           <div className="signet-fu-grid">
             <div className="signet-fu-main">
-              <label className="signet-fu-gate">
+              <label className="signet-fu-gate" data-viewer-action>
                 <div className="signet-fu-gate-copy">
                   <p>Require update</p>
                   <span>Users below {requiredLabel} see a full-screen block.</span>
@@ -175,6 +182,7 @@ export default function ForceUpdateSettings() {
                 <span className="signet-fu-switch">
                   <input
                     type="checkbox"
+                    data-viewer-action
                     checked={form.forceUpdate}
                     onChange={set("forceUpdate")}
                   />
@@ -196,6 +204,7 @@ export default function ForceUpdateSettings() {
                       onChange={set("minVersion")}
                       placeholder="1.0.0"
                       spellCheck={false}
+                      {...lock}
                     />
                   </label>
                   <label>
@@ -207,6 +216,7 @@ export default function ForceUpdateSettings() {
                       value={form.minBuild}
                       onChange={set("minBuild")}
                       placeholder="0"
+                      {...lock}
                     />
                   </label>
                 </div>
@@ -224,6 +234,7 @@ export default function ForceUpdateSettings() {
                     value={form.message}
                     onChange={set("message")}
                     rows={3}
+                    {...lock}
                   />
                   <span className="signet-fu-char">{messageCount} chars</span>
                 </div>
@@ -244,6 +255,7 @@ export default function ForceUpdateSettings() {
                       value={form.iosStoreUrl}
                       onChange={set("iosStoreUrl")}
                       placeholder="App Store URL"
+                      {...lock}
                     />
                     <ArrowUpRight size={14} className="signet-fu-link-arrow" />
                   </label>
@@ -256,6 +268,7 @@ export default function ForceUpdateSettings() {
                       value={form.androidStoreUrl}
                       onChange={set("androidStoreUrl")}
                       placeholder="Play Store URL"
+                      {...lock}
                     />
                     <ArrowUpRight size={14} className="signet-fu-link-arrow" />
                   </label>
@@ -285,6 +298,7 @@ export default function ForceUpdateSettings() {
             <div className="signet-fu-dock-actions">
               <button
                 type="button"
+                data-viewer-action
                 onClick={resetDefaults}
                 className="signet-fu-btn-ghost"
                 disabled={saving}
@@ -294,6 +308,7 @@ export default function ForceUpdateSettings() {
               </button>
               <button
                 type="button"
+                data-viewer-action
                 onClick={save}
                 className="signet-fu-btn-save"
                 disabled={saving}

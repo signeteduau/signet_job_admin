@@ -6,10 +6,13 @@ import PageHeader from "../components/ui/PageHeader";
 import EmptyState from "../components/ui/EmptyState";
 import ReviewForm from "../components/reviews/ReviewForm";
 import { EMPTY_REVIEW, fetchReview, updateReview, validateReview } from "../lib/reviews";
+import { useAuth } from "../context/AuthContext";
+import { showConnectToAdmin } from "../lib/managementAccess";
 
 export default function EditReview() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { canWrite } = useAuth();
   const [form, setForm] = useState(EMPTY_REVIEW);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(true);
@@ -41,6 +44,10 @@ export default function EditReview() {
   }, [id]);
 
   const save = async () => {
+    if (!canWrite) {
+      showConnectToAdmin();
+      return;
+    }
     const nextErrors = validateReview(form);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) {

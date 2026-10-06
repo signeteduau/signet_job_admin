@@ -5,9 +5,12 @@ import { ArrowLeft } from "lucide-react";
 import PageHeader from "../components/ui/PageHeader";
 import ReviewForm from "../components/reviews/ReviewForm";
 import { EMPTY_REVIEW, createReview, fetchReviews, validateReview } from "../lib/reviews";
+import { useAuth } from "../context/AuthContext";
+import { showConnectToAdmin } from "../lib/managementAccess";
 
 export default function AddReview() {
   const navigate = useNavigate();
+  const { canWrite } = useAuth();
   const [form, setForm] = useState(EMPTY_REVIEW);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -22,6 +25,10 @@ export default function AddReview() {
   }, []);
 
   const save = async () => {
+    if (!canWrite) {
+      showConnectToAdmin();
+      return;
+    }
     const nextErrors = validateReview(form);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) {

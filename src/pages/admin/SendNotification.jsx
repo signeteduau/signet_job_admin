@@ -8,14 +8,19 @@ import PageHeader from "../../components/ui/PageHeader";
 import PageShell from "../../components/ui/PageShell";
 import SettingsPanel from "../../components/ui/SettingsPanel";
 import FormField from "../../components/ui/FormField";
+import { useAuth } from "../../context/AuthContext";
+import { blockIfViewer, viewerInputProps } from "../../lib/managementAccess";
 
 export default function SendNotification() {
+  const { canWrite } = useAuth();
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [audience, setAudience] = useState("all");
   const [sending, setSending] = useState(false);
+  const lock = viewerInputProps(canWrite);
 
   const sendNotification = async () => {
+    if (blockIfViewer(canWrite)) return;
     if (!title.trim() || !message.trim()) {
       toast.error("Please fill all fields");
       return;
@@ -58,7 +63,11 @@ export default function SendNotification() {
             className="signet-input"
             placeholder="e.g. Scheduled maintenance"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => {
+              if (blockIfViewer(canWrite)) return;
+              setTitle(e.target.value);
+            }}
+            {...lock}
           />
         </FormField>
 
@@ -68,19 +77,31 @@ export default function SendNotification() {
             className="signet-input resize-y min-h-[120px]"
             placeholder="Write the notification message…"
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={(e) => {
+              if (blockIfViewer(canWrite)) return;
+              setMessage(e.target.value);
+            }}
+            {...lock}
           />
         </FormField>
 
         <FormField label="Target audience">
-          <select className="signet-select" value={audience} onChange={(e) => setAudience(e.target.value)}>
+          <select
+            className="signet-select"
+            data-viewer-action
+            value={audience}
+            onChange={(e) => {
+              if (blockIfViewer(canWrite)) return;
+              setAudience(e.target.value);
+            }}
+          >
             <option value="all">All users</option>
             <option value="company">Companies only</option>
             <option value="candidate">Candidates only</option>
           </select>
         </FormField>
 
-        <button type="button" onClick={sendNotification} disabled={sending} className="signet-btn">
+        <button type="button" data-viewer-action onClick={sendNotification} disabled={sending} className="signet-btn">
           {sending ? "Sending…" : "Send notification"}
         </button>
       </SettingsPanel>

@@ -10,9 +10,12 @@ import {
   importWebsiteReviews,
   removeReview,
 } from "../lib/reviews";
+import { useAuth } from "../context/AuthContext";
+import { showConnectToAdmin } from "../lib/managementAccess";
 
 export default function Reviews() {
   const navigate = useNavigate();
+  const { canWrite } = useAuth();
   const [reviews, setReviews] = useState([]);
   const [search, setSearch] = useState("");
   const [kind, setKind] = useState("");
@@ -51,6 +54,10 @@ export default function Reviews() {
   const average = averageRating(published.length ? published : reviews);
 
   const importFromSite = async () => {
+    if (!canWrite) {
+      showConnectToAdmin();
+      return;
+    }
     setImporting(true);
     try {
       const items = await importWebsiteReviews();
@@ -69,6 +76,10 @@ export default function Reviews() {
   };
 
   const remove = async (id) => {
+    if (!canWrite) {
+      showConnectToAdmin();
+      return;
+    }
     if (!window.confirm("Delete this review from the website?")) return;
     try {
       await removeReview(id);
@@ -154,7 +165,14 @@ export default function Reviews() {
                   <button
                     type="button"
                     className="signet-review-icon-btn"
-                    onClick={() => navigate(`/admin/reviews/${review.id}/edit`)}
+                    data-viewer-action
+                    onClick={() => {
+                      if (!canWrite) {
+                        showConnectToAdmin();
+                        return;
+                      }
+                      navigate(`/admin/reviews/${review.id}/edit`);
+                    }}
                     aria-label={`Edit ${review.name}`}
                   >
                     <Pencil size={15} />
@@ -162,6 +180,7 @@ export default function Reviews() {
                   <button
                     type="button"
                     className="signet-review-icon-btn is-danger"
+                    data-viewer-action
                     onClick={() => remove(review.id)}
                     aria-label={`Delete ${review.name}`}
                   >

@@ -18,7 +18,7 @@ export default function FilterToolbar({
   children,
 }) {
   return (
-    <div className="signet-filter-bar space-y-3">
+    <div className="signet-filter-bar space-y-3" data-viewer-ok>
       <div className="flex flex-wrap items-center gap-3">
         <div className="signet-filter-search flex items-center gap-2 w-full min-w-0 flex-1 sm:min-w-[220px]">
           <Search size={16} className="opacity-50 shrink-0" />
@@ -46,7 +46,7 @@ export default function FilterToolbar({
           </button>
         )}
 
-        <div className="flex gap-2 ml-auto">
+        <div className="flex gap-2 ml-auto" data-viewer-action>
           {onExportExcel && (
             <button type="button" onClick={onExportExcel} className="signet-icon-btn" title="Export Excel">
               <FileSpreadsheet size={16} />

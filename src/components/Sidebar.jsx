@@ -364,6 +364,7 @@ export default function Sidebar({ mobileOpen = false, onClose }) {
       )}
 
       <aside
+        data-viewer-ok
         className={`signet-sidebar ${railCollapsed ? "signet-sidebar--collapsed" : "signet-sidebar--expanded"}${isMobile && mobileOpen ? " signet-sidebar--mobile-open" : ""}`}
       >
         <div className="signet-sidebar-head">

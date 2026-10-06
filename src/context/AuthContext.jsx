@@ -1,23 +1,23 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../firebase";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { isManagementEmail } from "../lib/managementAccess";
 
 export const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(undefined); // undefined = loading
+  const [user, setUser] = useState(undefined);
+  const [profile, setProfile] = useState(null);
 
-  // Generate Unique Session ID per browser/device
   const getSessionId = () => {
     return btoa(navigator.userAgent + navigator.platform).replace(/=/g, "");
   };
 
-  const recordSession = async (user) => {
-    if (!user) return;
+  const recordSession = async (currentUser) => {
+    if (!currentUser) return;
 
     const sessionId = getSessionId();
-
     let locationData = {};
     try {
       const res = await fetch("https://ipapi.co/json/");
@@ -36,7 +36,7 @@ export function AuthProvider({ children }) {
     }
 
     await setDoc(
-      doc(db, "users", user.uid, "sessions", sessionId),
+      doc(db, "users", currentUser.uid, "sessions", sessionId),
       {
         sessionId,
         userAgent: navigator.userAgent,
@@ -50,14 +50,33 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (currentUser) => {
+      if (!currentUser) {
+        setProfile(null);
+        setUser(null);
+        return;
+      }
+
+      try {
+        const snap = await getDoc(doc(db, "users", currentUser.uid));
+        setProfile(snap.exists() ? snap.data() : null);
+      } catch {
+        setProfile(null);
+      }
+
       setUser(currentUser);
-      if (currentUser) await recordSession(currentUser);
+      recordSession(currentUser);
     });
 
     return () => unsub();
   }, []);
 
-  // ✅ Prevent blank screen during auth check
+  const value = useMemo(() => {
+    const isViewer = isManagementEmail(user?.email);
+    const canWrite = Boolean(user) && !isViewer;
+    const canAccessAdmin = Boolean(user) && (isViewer || profile?.userType === "admin");
+    return { user, profile, isViewer, canWrite, canAccessAdmin };
+  }, [user, profile]);
+
   if (user === undefined) {
     return (
       <div className="flex items-center justify-center h-screen bg-[rgb(var(--background))] text-[rgb(var(--foreground))]">
@@ -66,7 +85,7 @@ export function AuthProvider({ children }) {
     );
   }
 
-  return <AuthContext.Provider value={{ user }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => useContext(AuthContext);

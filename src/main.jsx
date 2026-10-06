@@ -12,7 +12,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <AuthProvider>
       <ThemeProvider>
         <BrowserRouter>
-          <Toaster position="top-right" />   {/* ✅ Moved here */}
+          <Toaster position="top-right" toastOptions={{ duration: 3000 }} containerStyle={{ top: 20, zIndex: 80 }} />
           <App />
         </BrowserRouter>
       </ThemeProvider>

@@ -18,6 +18,7 @@ import {
   Loader2,
 } from "lucide-react";
 import SignetLogo from "../components/SignetLogo";
+import { isManagementEmail } from "../lib/managementAccess";
 
 const ATTEMPTS_KEY = "admin-login-attempts";
 const MAX_ATTEMPTS = 5;
@@ -99,7 +100,10 @@ export default function Login() {
       const cred = await signInWithEmailAndPassword(auth, email.trim(), pass);
 
       const snap = await getDoc(doc(db, "users", cred.user.uid));
-      if (!snap.exists() || snap.data()?.userType !== "admin") {
+      const allowed =
+        isManagementEmail(cred.user.email) ||
+        (snap.exists() && snap.data()?.userType === "admin");
+      if (!allowed) {
         await signOut(auth);
         recordFail();
         setSnack("Access denied. Admin role required.");

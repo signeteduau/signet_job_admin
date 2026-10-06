@@ -26,7 +26,7 @@ function displayName(user) {
 
 export default function Topbar({ navOpen = false, onMenuClick }) {
   const { mode, toggleTheme } = useTheme();
-  const { user } = useAuth();
+  const { user, isViewer } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const uid = auth.currentUser?.uid || null;
@@ -115,7 +115,7 @@ export default function Topbar({ navOpen = false, onMenuClick }) {
   const name = displayName(user);
 
   return (
-    <header className="signet-topbar relative z-[2] h-16 flex items-center justify-between gap-3 px-4 sm:px-6 md:px-8">
+    <header data-viewer-ok className="signet-topbar relative z-[2] h-16 flex items-center justify-between gap-3 px-4 sm:px-6 md:px-8">
       <div className="flex min-w-0 items-center gap-3">
         <button
           type="button"
@@ -202,7 +202,7 @@ export default function Topbar({ navOpen = false, onMenuClick }) {
             <span className="signet-user-avatar">{initials}</span>
             <span className="signet-user-meta">
               <span className="signet-user-name">{name}</span>
-              <span className="signet-user-role">Administrator</span>
+              <span className="signet-user-role">{isViewer ? "Viewer" : "Administrator"}</span>
             </span>
             <ChevronDown
               size={16}

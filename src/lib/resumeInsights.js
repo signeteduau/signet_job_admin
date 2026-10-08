@@ -4,7 +4,7 @@ import { db, storage } from "../firebase";
 
 let pdfjsLibPromise;
 
-async function getPdfjs() {
+export async function getPdfjs() {
   if (!pdfjsLibPromise) {
     pdfjsLibPromise = import("pdfjs-dist/build/pdf.mjs").then((pdfjsLib) => {
       if (!pdfjsLib.GlobalWorkerOptions.workerPort) {
@@ -447,8 +447,73 @@ function looksLikePdf(bytes) {
   );
 }
 
+function looksLikePng(bytes) {
+  return bytes?.length > 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+}
+
+function looksLikeJpeg(bytes) {
+  return bytes?.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+}
+
+function looksLikeGif(bytes) {
+  return bytes?.length > 6 && bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46;
+}
+
+function looksLikeWebp(bytes) {
+  return (
+    bytes?.length > 12 &&
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50
+  );
+}
+
+function detectResumeMime(bytes, resumeUrl = "", fileName = "") {
+  if (looksLikePdf(bytes)) return "application/pdf";
+  if (looksLikePng(bytes)) return "image/png";
+  if (looksLikeJpeg(bytes)) return "image/jpeg";
+  if (looksLikeGif(bytes)) return "image/gif";
+  if (looksLikeWebp(bytes)) return "image/webp";
+
+  const source = `${resumeUrl} ${fileName}`.toLowerCase();
+  if (/\.docx(\?|$)/.test(source)) {
+    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  }
+  if (/\.doc(\?|$)/.test(source)) return "application/msword";
+  if (/\.(png|jpe?g|gif|webp)(\?|$)/.test(source)) return "image/jpeg";
+  if (/\.pdf(\?|$)/.test(source) || source.includes("application%2Fpdf")) {
+    return "application/pdf";
+  }
+  return "application/octet-stream";
+}
+
+function previewKindFromMime(mime) {
+  if (mime.startsWith("image/")) return "image";
+  if (mime === "application/pdf") return "pdf";
+  return "file";
+}
+
+function withTimeout(promise, ms, message) {
+  let timer;
+  return Promise.race([
+    Promise.resolve(promise).finally(() => clearTimeout(timer)),
+    new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(message)), ms);
+    }),
+  ]);
+}
+
 async function fetchViaUrl(url) {
-  const response = await fetch(url, { mode: "cors", credentials: "omit" });
+  const response = await fetch(url, {
+    mode: "cors",
+    credentials: "omit",
+    signal: AbortSignal.timeout(15000),
+  });
   if (!response.ok) {
     throw new Error(`Resume download failed (${response.status})`);
   }
@@ -461,6 +526,9 @@ function proxiedStorageUrl(resumeUrl) {
     if (url.hostname === "firebasestorage.googleapis.com") {
       return `/__firebase-storage${url.pathname}${url.search}`;
     }
+    if (url.hostname.endsWith(".firebasestorage.app")) {
+      return `/__firebase-app-storage${url.pathname}${url.search}`;
+    }
   } catch {
     return null;
   }
@@ -468,22 +536,47 @@ function proxiedStorageUrl(resumeUrl) {
 }
 
 async function fetchResumeBytes(resumeUrl) {
+  const attempts = [];
+  const proxied = import.meta.env.DEV ? proxiedStorageUrl(resumeUrl) : null;
+  if (proxied) {
+    attempts.push(() => fetchViaUrl(proxied));
+  }
+  if (/^https?:\/\//i.test(resumeUrl)) {
+    attempts.push(() => fetchViaUrl(resumeUrl));
+  }
   const path = storagePathFromUrl(resumeUrl);
   if (path) {
-    try {
-      return new Uint8Array(await getBytes(storageRef(storage, path)));
-    } catch (err) {
-      console.warn("Resume storage download failed, trying URL:", err);
-    }
+    attempts.push(() =>
+      withTimeout(
+        getBytes(storageRef(storage, path)).then((buf) => new Uint8Array(buf)),
+        8000,
+        "Storage download timed out"
+      )
+    );
   }
 
-  try {
-    return await fetchViaUrl(resumeUrl);
-  } catch (err) {
-    const proxied = import.meta.env.DEV ? proxiedStorageUrl(resumeUrl) : null;
-    if (proxied) return fetchViaUrl(proxied);
-    throw err;
+  let lastError = new Error("Could not load resume");
+  for (const attempt of attempts) {
+    try {
+      return await attempt();
+    } catch (err) {
+      lastError = err;
+      console.warn("Resume fetch attempt failed:", err);
+    }
   }
+  throw lastError;
+}
+
+/** Blob URL with the real MIME type so PDFs preview instead of downloading. */
+export async function createResumePreview(resumeUrl, fileName = "") {
+  const bytes = await fetchResumeBytes(resumeUrl);
+  const mime = detectResumeMime(bytes, resumeUrl, fileName);
+  const blob = new Blob([bytes], { type: mime });
+  return {
+    objectUrl: URL.createObjectURL(blob),
+    mime,
+    kind: previewKindFromMime(mime),
+  };
 }
 
 export async function extractResumeText(resumeUrl) {

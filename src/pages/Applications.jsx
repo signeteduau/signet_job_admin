@@ -17,12 +17,10 @@ import PageHeader from "../components/ui/PageHeader";
 import StatusBadge from "../components/ui/StatusBadge";
 import FilterToolbar from "../components/ui/FilterToolbar";
 import DataTable from "../components/ui/DataTable";
-import { fetchUniqueApplications, enrichApplicationsWithCandidates } from "../lib/firestore";
+import { fetchUniqueApplications, enrichApplicationsWithCandidates, formatDateDMY } from "../lib/firestore";
 
 function fmtDate(v) {
-  if (!v) return "—";
-  const d = v instanceof Date ? v : v?.toDate?.();
-  return d ? d.toLocaleDateString() : "—";
+  return formatDateDMY(v);
 }
 
 function display(v) {

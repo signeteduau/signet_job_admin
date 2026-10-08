@@ -1,4 +1,5 @@
 import { Search, FileSpreadsheet, Download, X } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 export default function FilterToolbar({
   search,
@@ -17,6 +18,7 @@ export default function FilterToolbar({
   resultSummary,
   children,
 }) {
+  const { canExportLists } = useAuth();
   return (
     <div className="signet-filter-bar space-y-3" data-viewer-ok>
       <div className="flex flex-wrap items-center gap-3">
@@ -46,14 +48,26 @@ export default function FilterToolbar({
           </button>
         )}
 
-        <div className="flex gap-2 ml-auto" data-viewer-action>
+        <div className="flex gap-2 ml-auto">
           {onExportExcel && (
-            <button type="button" onClick={onExportExcel} className="signet-icon-btn" title="Export Excel">
+            <button
+              type="button"
+              onClick={onExportExcel}
+              className="signet-icon-btn"
+              title="Export Excel"
+              {...(canExportLists ? { "data-viewer-ok": true } : { "data-viewer-action": true })}
+            >
               <FileSpreadsheet size={16} />
             </button>
           )}
           {onExportPDF && (
-            <button type="button" onClick={onExportPDF} className="signet-icon-btn" title="Export PDF">
+            <button
+              type="button"
+              onClick={onExportPDF}
+              className="signet-icon-btn"
+              title="Export PDF"
+              data-viewer-action
+            >
               <Download size={16} />
             </button>
           )}

@@ -1,3 +1,4 @@
+import { formatDateDMY } from "../../lib/firestore";
 import {
   emptyJobLocation,
   formatJobLocation,
@@ -18,9 +19,7 @@ export const JOB_TYPES = [
 export const PUBLIC_JOBS_BASE = "https://signetemploymenthub.com/jobs";
 
 export function fmtJobDate(value) {
-  if (!value) return "—";
-  const d = value instanceof Date ? value : value?.toDate?.();
-  return d ? d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "—";
+  return formatDateDMY(value);
 }
 
 export function cityLabel(location) {

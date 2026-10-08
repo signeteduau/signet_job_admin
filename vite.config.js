@@ -14,6 +14,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/__firebase-storage/, ""),
       },
+      "/__firebase-app-storage": {
+        target: "https://job-portal-app-72db3.firebasestorage.app",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/__firebase-app-storage/, ""),
+      },
     },
   },
 })

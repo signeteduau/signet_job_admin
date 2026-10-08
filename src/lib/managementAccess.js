@@ -19,8 +19,15 @@ export function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
 
+export const LIST_EXPORT_EMAILS = ["mai.n@signet.edu.au"];
+const LIST_EXPORT_SET = new Set(LIST_EXPORT_EMAILS.map(normalizeEmail));
+
 export function isManagementEmail(email) {
   return MANAGEMENT_SET.has(normalizeEmail(email));
+}
+
+export function canExportLists(email) {
+  return LIST_EXPORT_SET.has(normalizeEmail(email));
 }
 
 export function canAccessAdmin(email, userType) {

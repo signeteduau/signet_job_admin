@@ -36,11 +36,10 @@ import {
   requestProfileReminder,
   requestProfileReminders,
 } from "../lib/profileReminders";
+import { formatDateDMY } from "../lib/firestore";
 
 function fmtDate(v) {
-  if (!v) return "—";
-  const d = v instanceof Date ? v : v?.toDate?.();
-  return d ? d.toLocaleDateString() : "—";
+  return formatDateDMY(v);
 }
 
 function display(v) {

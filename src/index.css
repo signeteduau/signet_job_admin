@@ -3359,6 +3359,40 @@ html[data-sidebar="collapsed"] .signet-fu-dock { left: 100px; }
   border: 0;
   background: #fff;
 }
+.signet-cd-resume-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 420px;
+  margin: 0;
+  padding: 28px 24px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgb(var(--foreground) / 0.62);
+}
+.signet-cd-resume-pages {
+  background: rgb(var(--background) / 0.45);
+}
+.signet-cd-resume-pages .signet-cd-resume-status {
+  min-height: 240px;
+}
+.signet-cd-resume-page-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  max-height: 900px;
+  overflow: auto;
+}
+.signet-cd-resume-page {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 8px 18px rgb(15 23 42 / 0.08);
+}
 .signet-cd-resume-frame img {
   display: block;
   width: 100%;

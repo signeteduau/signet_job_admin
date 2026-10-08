@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, updateProfile } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../firebase";
-import { isManagementEmail } from "../lib/managementAccess";
+import { canExportLists as emailCanExportLists, isManagementEmail } from "../lib/managementAccess";
 
 function accountNameFrom(user, profile) {
   return (
@@ -92,6 +92,7 @@ export function AuthProvider({ children }) {
     const isViewer = isManagementEmail(user?.email);
     const canWrite = Boolean(user) && !isViewer;
     const canAccessAdmin = Boolean(user) && (isViewer || profile?.userType === "admin");
+    const canExportLists = canWrite || emailCanExportLists(user?.email);
     return {
       user,
       profile,
@@ -99,6 +100,7 @@ export function AuthProvider({ children }) {
       updateAccountName,
       isViewer,
       canWrite,
+      canExportLists,
       canAccessAdmin,
     };
   }, [user, profile]);

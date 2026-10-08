@@ -21,6 +21,7 @@ import {
   reminderStatusLabel,
   requestProfileReminder,
 } from "../lib/profileReminders";
+import { createResumePreview } from "../lib/resumeInsights";
 
 function asText(value, fallback = "—") {
   if (value == null || value === "") return fallback;
@@ -50,21 +51,6 @@ function formatDate(value) {
     month: "short",
     year: "numeric",
   });
-}
-
-function resumePreviewKind(url, fileName = "") {
-  const source = `${url} ${fileName}`.toLowerCase();
-  if (/\.(png|jpe?g|gif|webp)(\?|$)/.test(source) || source.includes("image%2F")) {
-    return "image";
-  }
-  if (
-    /\.pdf(\?|$)/.test(source) ||
-    source.includes("application%2Fpdf") ||
-    source.includes("pdf")
-  ) {
-    return "pdf";
-  }
-  return "file";
 }
 
 function initials(name) {
@@ -108,6 +94,12 @@ export default function CandidateDetail() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reminding, setReminding] = useState(false);
+  const [resumePreview, setResumePreview] = useState({
+    url: "",
+    kind: "file",
+    loading: false,
+    error: "",
+  });
 
   useEffect(() => {
     const fetchCandidate = async () => {
@@ -152,10 +144,54 @@ export default function CandidateDetail() {
   ]
     .map((value) => (typeof value === "string" ? value.trim() : ""))
     .find(Boolean) || "";
-  const resumeKind = resumePreviewKind(
-    resumeUrl,
-    candidate?.resumeFileName || candidate?.resumeFile || ""
+  const resumeName = asText(
+    candidate?.resumeFileName || candidate?.resumeFile || "Resume",
+    "Resume"
   );
+
+  useEffect(() => {
+    let objectUrl = "";
+    let cancelled = false;
+
+    if (!resumeUrl) {
+      setResumePreview({ url: "", kind: "file", loading: false, error: "" });
+      return undefined;
+    }
+
+    setResumePreview({ url: "", kind: "file", loading: true, error: "" });
+
+    createResumePreview(resumeUrl, resumeName)
+      .then((result) => {
+        if (cancelled) {
+          URL.revokeObjectURL(result.objectUrl);
+          return;
+        }
+        objectUrl = result.objectUrl;
+        setResumePreview({
+          url: result.objectUrl,
+          kind: result.kind,
+          loading: false,
+          error: "",
+        });
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setResumePreview({
+          url: "",
+          kind: "file",
+          loading: false,
+          error: err.message || "Could not load resume preview.",
+        });
+      });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [resumeUrl, resumeName]);
+
+  const previewHref = resumePreview.url || resumeUrl;
+  const resumeKind = resumePreview.kind;
 
   if (loading) {
     return (
@@ -234,10 +270,6 @@ export default function CandidateDetail() {
     }
   };
   const phoneHref = phone !== "—" ? `tel:${phone.replace(/\s+/g, "")}` : null;
-  const resumeName = asText(
-    candidate.resumeFileName || candidate.resumeFile || "Resume",
-    "Resume"
-  );
 
   return (
     <div className="signet-cd-page animate-fade">
@@ -269,7 +301,7 @@ export default function CandidateDetail() {
           )}
           {resumeUrl && (
             <a
-              href={resumeUrl}
+              href={previewHref}
               target="_blank"
               rel="noreferrer"
               className="signet-btn"
@@ -406,7 +438,7 @@ export default function CandidateDetail() {
           {resumeUrl && (
             <div className="signet-cd-resume-actions">
               <a
-                href={resumeUrl}
+                href={previewHref}
                 target="_blank"
                 rel="noreferrer"
                 className="signet-cd-resume-open"
@@ -415,7 +447,7 @@ export default function CandidateDetail() {
                 Open in new tab
               </a>
               <a
-                href={resumeUrl}
+                href={previewHref}
                 download={resumeName}
                 className="signet-btn-secondary"
               >
@@ -431,7 +463,7 @@ export default function CandidateDetail() {
             <div className="signet-cd-resume-preview-bar">
               <span>Document preview</span>
               <a
-                href={resumeUrl}
+                href={previewHref}
                 target="_blank"
                 rel="noreferrer"
                 className="signet-cd-resume-open signet-cd-resume-open--compact"
@@ -441,14 +473,22 @@ export default function CandidateDetail() {
                 Open
               </a>
             </div>
-            {resumeKind === "image" ? (
-              <img src={resumeUrl} alt={`${name} resume`} />
-            ) : (
+            {resumePreview.loading ? (
+              <p className="signet-cd-resume-status">Loading resume preview…</p>
+            ) : resumePreview.error ? (
+              <p className="signet-cd-resume-status">{resumePreview.error}</p>
+            ) : resumeKind === "image" ? (
+              <img src={previewHref} alt={`${name} resume`} />
+            ) : resumeKind === "pdf" ? (
               <iframe
                 title={`${name} resume`}
-                src={resumeUrl}
+                src={`${previewHref}#toolbar=1&navpanes=0`}
                 className="signet-cd-resume-embed"
               />
+            ) : (
+              <p className="signet-cd-resume-status">
+                This file type can’t be previewed in the browser. Use Open or Download.
+              </p>
             )}
           </div>
         ) : (

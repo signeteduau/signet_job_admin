@@ -13,6 +13,14 @@ export function toDate(value) {
   return null;
 }
 
+export function formatDateDMY(value) {
+  const d = toDate(value);
+  if (!d || Number.isNaN(d.getTime())) return "—";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}/${mm}/${d.getFullYear()}`;
+}
+
 async function safeSubcollectionDocs(...pathSegments) {
   try {
     const snap = await getDocs(collection(db, ...pathSegments));

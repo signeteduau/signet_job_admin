@@ -66,7 +66,7 @@ export default function FilterToolbar({
               onClick={onExportPDF}
               className="signet-icon-btn"
               title="Export PDF"
-              data-viewer-action
+              {...(canExportLists ? { "data-viewer-ok": true } : { "data-viewer-action": true })}
             >
               <Download size={16} />
             </button>

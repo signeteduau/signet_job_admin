@@ -11,6 +11,7 @@ export const MANAGEMENT_EMAILS = [
   "christine.w@signet.edu.au",
   "navdeep.k@signet.edu.au",
   "mai.n@signet.edu.au",
+  "andrea.b@signet.edu.au",
 ];
 
 const MANAGEMENT_SET = new Set(MANAGEMENT_EMAILS);
